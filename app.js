@@ -167,7 +167,7 @@ function saveJSON(key, val){ localStorage.setItem(key, JSON.stringify(val)); }
 function defaultState(){
   return {
     days: SEED_DAYS.map((d,di)=>({ id:'day'+di, date:d.date, label:d.label, city:d.city, country:d.country, stay:d.stay, checkin:!!d.checkin,
-      blocks: d.blocks.map(b=>({ id:uid('blk'), period:b.period, tag:b.tag, title:b.title, time:b.time, place:b.place, tip:b.tip, map:b.map, estCost:null, actCost:null, memo:'' })) })),
+      blocks: d.blocks.map(b=>({ id:uid('blk'), period:b.period, tag:b.tag, title:b.title, time:b.time, place:b.place, tip:b.tip, map:b.map, estCost:null, actCost:null, memo:'', status:'none' })) })),
     pool: SEED_POOL.map(p=>({ id:uid('pool'), city:p.city, title:p.title, desc:p.desc, map:p.map })),
     shopping: SEED_SHOPPING,
     checklist: SEED_CHECKLIST.map(c=>({ id:uid('cat'), cat:c.cat, items:c.items.map(label=>({ id:uid('item'), label, done:false })) })),
@@ -182,6 +182,7 @@ if(!state.memos) state.memos = [];
 if(!state.shopChecked) state.shopChecked = {};
 if(!state.meta) state.meta = {webhookUrl:'', lastSync:null};
 if(!state.meta.webhookUrl && DEFAULT_WEBHOOK_URL) state.meta.webhookUrl = DEFAULT_WEBHOOK_URL;
+state.days.forEach(d=>d.blocks.forEach(b=>{ if(!b.status) b.status='none'; }));
 function persist(){ saveJSON(STATE_KEY, state); }
 
 let activeDayId = null;
@@ -309,6 +310,20 @@ function renderTimeline(){
   renderDayChips(); renderTimelineBody(); renderPool();
 }
 function tagIcon(tag){ return {'이동':'🚌','관광':'📍','식사':'🍽️','숙소':'🏨'}[tag] || '•'; }
+function statusMeta(status){
+  if(status==='done') return {label:'✅ 완료', cls:'status-done'};
+  if(status==='pass') return {label:'⏭ Pass', cls:'status-pass'};
+  return {label:'○ 대기', cls:'status-none'};
+}
+function cycleStatus(dayId, blockId){
+  const day = state.days.find(d=>d.id===dayId);
+  const block = day.blocks.find(b=>b.id===blockId);
+  const order = ['none','done','pass'];
+  const idx = order.indexOf(block.status||'none');
+  block.status = order[(idx+1)%order.length];
+  persist();
+  renderTimelineBody();
+}
 
 function renderTimelineBody(){
   const day = state.days.find(d=>d.id===activeDayId);
@@ -330,7 +345,8 @@ function renderTimelineBody(){
   day.blocks.forEach(b=>{
     if(b.period !== currentPeriod){ inner += `<div class="tl-period">${esc(b.period)}</div>`; currentPeriod = b.period; }
     const costRow = (b.estCost||b.actCost) ? `<div style="display:flex; gap:8px; margin-top:8px;">${b.estCost?`<span class="badge badge-pending">예상 ${Number(b.estCost).toLocaleString()}원</span>`:''}${b.actCost?`<span class="badge badge-done">지출 ${Number(b.actCost).toLocaleString()}원</span>`:''}</div>` : '';
-    inner += `<div class="tl-card tag-${esc(b.tag)}" data-id="${b.id}" onclick="openBlockModal('${day.id}','${b.id}')">
+    const st = statusMeta(b.status);
+    inner += `<div class="tl-card tag-${esc(b.tag)} ${st.cls}" data-id="${b.id}" onclick="openBlockModal('${day.id}','${b.id}')">
       <div class="tl-top">
         <div>
           <span class="drag-handle" onclick="event.stopPropagation();">⠿</span><span class="tl-time">${esc(b.time)}</span>
@@ -338,6 +354,7 @@ function renderTimelineBody(){
           ${b.place?`<div class="tl-place">${esc(b.place)}</div>`:''}
         </div>
         <div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px;">
+          <span class="status-pill ${st.cls}" onclick="event.stopPropagation(); cycleStatus('${day.id}','${b.id}')">${st.label}</span>
           <span class="tl-tag-pill">${esc(b.tag)}</span>
           ${b.map?`<div class="tl-map-btn" onclick="event.stopPropagation(); openMap('${b.map.replace(/'/g,"\\'")}')"><svg fill="none" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/></svg></div>`:''}
         </div>
@@ -348,6 +365,7 @@ function renderTimelineBody(){
     </div>`;
   });
   container.innerHTML = inner;
+
 
   Sortable.create(container, {
     animation:180, handle:'.drag-handle', ghostClass:'sortable-ghost', dragClass:'sortable-drag',
@@ -389,7 +407,7 @@ function openMap(query){ window.open('https://www.google.com/maps/search/?api=1&
 /* --- Block create/edit modal --- */
 function openBlockModal(dayId, blockId){
   const day = state.days.find(d=>d.id===dayId);
-  const block = blockId ? day.blocks.find(b=>b.id===blockId) : {period: day.blocks.length? day.blocks[day.blocks.length-1].period : '오전', tag:'관광', title:'', time:'', place:'', tip:'', map:'', estCost:null, actCost:null, memo:''};
+  const block = blockId ? day.blocks.find(b=>b.id===blockId) : {period: day.blocks.length? day.blocks[day.blocks.length-1].period : '오전', tag:'관광', title:'', time:'', place:'', tip:'', map:'', estCost:null, actCost:null, memo:'', status:'none'};
   const periods = ['아침','오전','오후','저녁','밤','추가 일정'];
   const tags = ['이동','관광','식사','숙소'];
   const html = `
@@ -398,6 +416,11 @@ function openBlockModal(dayId, blockId){
       <label>시간대<select id="fm_period">${periods.map(p=>`<option ${p===block.period?'selected':''}>${p}</option>`).join('')}</select></label>
       <label>태그<select id="fm_tag">${tags.map(t=>`<option ${t===block.tag?'selected':''}>${t}</option>`).join('')}</select></label>
     </div>
+    <label>진행 상태<select id="fm_status">
+      <option value="none" ${(!block.status||block.status==='none')?'selected':''}>○ 대기</option>
+      <option value="done" ${block.status==='done'?'selected':''}>✅ 완료</option>
+      <option value="pass" ${block.status==='pass'?'selected':''}>⏭ Pass(건너뜀)</option>
+    </select></label>
     <label>제목<input id="fm_title" value="${esc(block.title)}" placeholder="예: 프라하 성 투어"></label>
     <div class="formGrid">
       <label>시간<input id="fm_time" value="${esc(block.time)}" placeholder="09:00–13:00"></label>
@@ -423,7 +446,7 @@ function saveBlockModal(dayId, blockId){
   const val = id=>document.getElementById(id).value;
   const title = val('fm_title').trim();
   if(!title){ alert('제목을 입력해주세요.'); return; }
-  const data = { period: val('fm_period'), tag: val('fm_tag'), title, time: val('fm_time').trim(), place: val('fm_place').trim(), tip: val('fm_tip').trim(), map: val('fm_map').trim(), estCost: val('fm_est')? Number(val('fm_est')) : null, actCost: val('fm_act')? Number(val('fm_act')) : null, memo: val('fm_memo').trim() };
+  const data = { period: val('fm_period'), tag: val('fm_tag'), title, time: val('fm_time').trim(), place: val('fm_place').trim(), tip: val('fm_tip').trim(), map: val('fm_map').trim(), estCost: val('fm_est')? Number(val('fm_est')) : null, actCost: val('fm_act')? Number(val('fm_act')) : null, memo: val('fm_memo').trim(), status: val('fm_status') };
   if(blockId){
     const idx = day.blocks.findIndex(b=>b.id===blockId);
     day.blocks[idx] = {...day.blocks[idx], ...data};
@@ -485,7 +508,7 @@ function deletePoolSpot(poolId){
 function addPoolToTimeline(poolId){
   const spot = state.pool.find(p=>p.id===poolId);
   const day = state.days.find(d=>d.id===activeDayId);
-  day.blocks.push({id:uid('blk'), period:'추가 일정', tag:'관광', title:'📌 '+spot.title, time:'', place:spot.desc, tip:'추천 스팟 풀에서 추가됨', map:spot.map, estCost:null, actCost:null, memo:''});
+  day.blocks.push({id:uid('blk'), period:'추가 일정', tag:'관광', title:'📌 '+spot.title, time:'', place:spot.desc, tip:'추천 스팟 풀에서 추가됨', map:spot.map, estCost:null, actCost:null, memo:'', status:'none'});
   persist(); renderTimelineBody();
 }
 
