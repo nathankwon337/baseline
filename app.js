@@ -666,7 +666,7 @@ function renderChecklist(){
             <span class="icon-btn" onclick="editChkItem('${cat.id}','${item.id}')">✎</span>
             <span class="icon-btn danger" onclick="deleteChkItem('${cat.id}','${item.id}')">×</span>
           </div>
-          <input class="chk-note-input" value="${esc(item.note||'')}" placeholder="비고 (선택)" onchange="updateChkNote('${cat.id}','${item.id}', this.value)">
+          <input class="chk-note-input" value="${esc(item.note||'')}" placeholder="비고 (선택)" oninput="updateChkNote('${cat.id}','${item.id}', this.value); flashSaved(this)">
         </div>`).join('')}
       <div style="display:flex; gap:6px; margin-top:9px;">
         <input id="newitem-${cat.id}" placeholder="새 항목 추가" style="flex:1; border:1px solid var(--line); border-radius:8px; padding:7px 9px; font-size:12.5px;" onkeydown="if(event.key==='Enter')addChecklistItem('${cat.id}')">
@@ -684,6 +684,11 @@ function renderChecklist(){
   const pct = totalItems? Math.round(totalDone/totalItems*100) : 0;
   document.getElementById('chkOverallPct').textContent = pct+'%';
   document.getElementById('chkOverallBar').style.width = pct+'%';
+}
+function flashSaved(el){
+  el.style.borderBottomColor = '#4B6650';
+  clearTimeout(el._flashTimer);
+  el._flashTimer = setTimeout(()=>{ el.style.borderBottomColor = ''; }, 500);
 }
 function toggleChk(catId, itemId){
   const cat = state.checklist.find(c=>c.id===catId);
@@ -766,7 +771,7 @@ function renderShopping(){
           <span class="icon-btn" onclick="editShopItem('${grp.id}','${item.id}')">✎</span>
           <span class="icon-btn danger" onclick="deleteShopItem('${grp.id}','${item.id}')">×</span>
         </div>
-        <input class="chk-note-input" value="${esc(item.note||'')}" placeholder="비고 (선택)" onchange="updateShopNote('${grp.id}','${item.id}', this.value)">
+        <input class="chk-note-input" value="${esc(item.note||'')}" placeholder="비고 (선택)" oninput="updateShopNote('${grp.id}','${item.id}', this.value); flashSaved(this)">
       </div>`;
     });
     html += `<div style="display:flex; gap:6px; margin-top:9px;">
