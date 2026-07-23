@@ -499,8 +499,13 @@ function openBlockModal(dayId, blockId){
   const curAmt = block.actCost? block.actCost.amount : '';
   const curCur = block.actCost? block.actCost.currency : 'EUR';
   const initKrw = curAmt? Math.round(Number(curAmt)*(FX[curCur]||0)).toLocaleString()+'원' : '0원';
+  const poolOptions = state.pool.filter(p=>p.city===day.city);
   const html = `
     <div class="font-display" style="font-size:17px; font-weight:700; margin-bottom:6px;">${blockId?'일정 카드 수정':'새 일정 카드 추가'}</div>
+    ${poolOptions.length? `<label>추천 스팟풀에서 불러오기 (선택)<select id="fm_poolpick" onchange="applyPoolPick(this.value)">
+      <option value="">직접 입력</option>
+      ${poolOptions.map(p=>`<option value="${p.id}">${esc(p.title)}</option>`).join('')}
+    </select></label>` : ''}
     <div class="formGrid">
       <label>시간대<select id="fm_period">${periods.map(p=>`<option ${p===block.period?'selected':''}>${p}</option>`).join('')}</select></label>
       <label>태그<select id="fm_tag">${tags.map(t=>`<option ${t===block.tag?'selected':''}>${t}</option>`).join('')}</select></label>
@@ -536,6 +541,15 @@ function openBlockModal(dayId, blockId){
     <button class="btn-cancel" onclick="closeFormModal()">취소</button>`;
   openFormModal(html);
 }
+function applyPoolPick(poolId){
+  if(!poolId) return;
+  const spot = state.pool.find(p=>p.id===poolId);
+  if(!spot) return;
+  document.getElementById('fm_title').value = spot.title;
+  document.getElementById('fm_place').value = spot.desc || '';
+  document.getElementById('fm_map').value = spot.map || '';
+  document.getElementById('fm_menu').value = spot.menuPdf || '';
+}
 function updateKrwPreview(){
   const amt = Number(document.getElementById('fm_actamt').value)||0;
   const cur = document.getElementById('fm_actcur').value;
@@ -567,7 +581,16 @@ function demoteToPool(dayId, blockId){
   const day = state.days.find(d=>d.id===dayId);
   const block = day.blocks.find(b=>b.id===blockId);
   if(!confirm('"'+block.title+'" 카드를 일정에서 빼고 추천 스팟 풀로 옮길까요?')) return;
-  state.pool.push({id:uid('pool'), city:day.city, title:block.title.replace(/^📌\s*/,'').replace(/^★\s*/,''), desc: block.tip||block.place||'', map: block.map||'', menuPdf: block.menuPdf||''});
+  const cleanTitle = block.title.replace(/^📌\s*/,'').replace(/^★\s*/,'').trim();
+  const existing = state.pool.find(p=>p.city===day.city && p.title.trim()===cleanTitle);
+  if(existing){
+    // 이미 같은 스팟이 풀에 있으면 중복 추가하지 않고, 비어있는 정보만 보완
+    if(!existing.desc && (block.tip||block.place)) existing.desc = block.tip||block.place;
+    if(!existing.map && block.map) existing.map = block.map;
+    if(!existing.menuPdf && block.menuPdf) existing.menuPdf = block.menuPdf;
+  } else {
+    state.pool.push({id:uid('pool'), city:day.city, title:cleanTitle, desc: block.tip||block.place||'', map: block.map||'', menuPdf: block.menuPdf||''});
+  }
   day.blocks = day.blocks.filter(b=>b.id!==blockId);
   persist(); closeFormModal(); renderTimelineBody(); renderPool();
 }
