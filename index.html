@@ -6,7 +6,7 @@
 <title>EuroTrip 2026｜가족 유럽여행 대시보드</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.2/Sortable.min.js"></script>
+<script src="sortable.min.js"></script>
 <style>
 :root{
   --ink:#182233; --ink-2:#233047; --paper:#FBF8F1; --paper-2:#F2EDE1; --line:#DED5C0;
@@ -63,6 +63,7 @@ body{background:var(--paper); color:var(--text); font-family:'Inter',sans-serif;
 .tl-card.tag-관광{border-left-color:#C99A3E;}
 .tl-card.tag-식사{border-left-color:#B0503A;}
 .tl-card.tag-숙소{border-left-color:#5B6B8C;}
+.tl-card.tag-쇼핑{border-left-color:#8E6FA8;}
 .tl-card .tl-top{display:flex; justify-content:space-between; align-items:flex-start; gap:8px;}
 .tl-card .tl-time{font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--muted); font-weight:600;}
 .tl-card .tl-title{font-weight:700; font-size:14.5px; margin-top:2px; line-height:1.35;}
@@ -93,7 +94,11 @@ body{background:var(--paper); color:var(--text); font-family:'Inter',sans-serif;
 .chk-cat-head h3{font-family:'Fraunces',serif; font-size:15px; font-weight:600; margin:0;}
 .chk-progress{font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--muted);}
 .chk-item{display:flex; align-items:center; gap:9px; padding:9px 4px; border-bottom:1px solid var(--paper-2);}
-.chk-item:last-child{border-bottom:none;}
+.chk-item-wrap{border-bottom:1px solid var(--paper-2);}
+.chk-item-wrap .chk-item{border-bottom:none; padding-bottom:2px;}
+.chk-item-wrap:last-child{border-bottom:none;}
+.chk-note-input{width:100%; border:none; border-bottom:1px dashed var(--line); background:transparent; font-size:11.5px; color:var(--muted); padding:0 4px 8px 34px; margin-top:-2px;}
+.chk-note-input:focus{outline:none; border-bottom-color:var(--gold-deep);}
 .chk-box{width:21px;height:21px; border-radius:6px; border:2px solid var(--line); flex-shrink:0; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:.15s;}
 .chk-box.on{background:var(--moss); border-color:var(--moss);}
 .chk-box svg{width:13px;height:13px; stroke:white; opacity:0;}
@@ -158,33 +163,12 @@ textarea#memoInput{width:100%; border:1px solid var(--line); border-radius:10px;
   </div>
 
   <div class="card">
-    <div class="section-label">예산 현황</div>
-    <div style="display:flex; gap:14px;">
-      <div style="flex:1;"><div class="font-mono" style="font-size:11px;color:var(--muted);">일정 카드 예상비용 합계</div><div class="font-display" id="budgetEst" style="font-size:19px; font-weight:700;">0원</div></div>
-      <div style="flex:1;"><div class="font-mono" style="font-size:11px;color:var(--muted);">실제 사용비용 합계</div><div class="font-display" id="budgetAct" style="font-size:19px; font-weight:700; color:var(--brick);">0원</div></div>
-    </div>
-    <div style="font-size:11px; color:var(--muted); margin-top:8px;">참고: 엑셀 원본 견적 총계는 약 6,141,126원(숙소 제외 2,902,021원)이며, 위 숫자는 타임라인 카드에 직접 입력한 값의 합입니다.</div>
-  </div>
-
-  <div class="card">
-    <div class="section-label">가족 동기화 (구글시트 연동)</div>
-    <input id="webhookInput" placeholder="구글 앱스 스크립트 웹앱 URL 붙여넣기">
-    <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:9px;">
-      <button class="btn-primary" onclick="saveWebhookUrl()">URL 저장</button>
-      <button class="btn-primary" style="background:var(--moss);" onclick="syncUpload(event)">☁️ 지금 업로드</button>
-      <button class="btn-primary" style="background:var(--ink-2);" onclick="syncDownload()">⬇️ 지금 불러오기</button>
-    </div>
-    <div id="syncStatus" style="font-size:11px; color:var(--muted); margin-top:8px;"></div>
-    <div style="margin-top:6px;"><span onclick="openSyncHelp()" style="font-size:11.5px; color:var(--brick); font-weight:700; cursor:pointer;">📄 연동 설정 방법 보기</span></div>
-  </div>
-
-  <div class="card">
     <div class="section-label">긴급 링크 바로가기</div>
     <div style="display:grid; grid-template-columns:1fr 1fr; gap:9px;">
-      <div class="quicklink" onclick="openModal('여권 사본','가족 3인 여권 사본 이미지를 클라우드(구글포토/드라이브)에 미리 업로드해두세요. 분실 시 대사관/영사관 재발급에 필요합니다.')">
+      <div class="quicklink" onclick="openQuickLinkModal('passport','여권 사본','가족 여권 사본을 열람할 수 있는 링크를 연결하세요.\n① 구글 드라이브에 업로드 후 “링크가 있는 모든 사용자”로 공유 설정한 URL을 사용하거나,\n② GitHub 저장소에 PDF/이미지를 올리고 그 파일의 raw 링크를 사용해도 됩니다.')">
         <svg fill="none" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 15a3 3 0 100-6 3 3 0 000 6z"/><rect x="3" y="4" width="18" height="16" rx="2"/></svg>여권 사본
       </div>
-      <div class="quicklink" onclick="openModal('여행자보험','보험증서 PDF·비상연락처가 담긴 클라우드 링크를 여기에 연결하세요.')">
+      <div class="quicklink" onclick="openQuickLinkModal('insurance','여행자보험','여행자보험 증서 PDF를 열람할 수 있는 링크를 연결하세요.\n① 구글 드라이브 공유 링크(링크가 있는 모든 사용자) 또는\n② GitHub 저장소에 올린 PDF의 raw 링크를 사용하면 됩니다.')">
         <svg fill="none" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3l7 3v6c0 4.5-3 8-7 9-4-1-7-4.5-7-9V6l7-3z"/></svg>여행자보험
       </div>
       <div class="quicklink" onclick="openModal('긴급 연락처','🇨🇿 체코 통합 응급 112 · 🇩🇪 독일 통합 응급 112 · 🇨🇭 스위스 응급 112 / 144(구급)\n주프라하 대한민국 대사관: +420-234-090-411\n주독일 대사관(뮌헨 총영사관): +49-89-5827930')">
@@ -197,13 +181,37 @@ textarea#memoInput{width:100%; border:1px solid var(--line); border-radius:10px;
   </div>
 
   <div class="card">
+    <div class="section-label">예산 현황</div>
+    <div style="text-align:center;">
+      <div class="font-mono" style="font-size:11px; color:var(--muted);">실제 사용비용 합계 (환산)</div>
+      <div class="font-display" id="budgetAct" style="font-size:28px; font-weight:700; color:var(--brick);">0원</div>
+      <div class="font-mono" id="budgetBreakdown" style="font-size:11.5px; color:var(--ink-2); margin-top:4px;">아직 입력된 사용비용이 없습니다</div>
+    </div>
+    <div style="font-size:11px; color:var(--muted); margin-top:10px;">환산 기준: 1 EUR = 1,700원 · 1 CZK = 70원 · 1 CHF = 1,800원 (타임라인 카드에서 통화별로 입력한 값을 환산해 합산)</div>
+  </div>
+
+  <div class="card">
+    <div class="section-label">가족 동기화 (구글시트 연동)</div>
+    <input id="webhookInput" placeholder="구글 앱스 스크립트 웹앱 URL 붙여넣기">
+    <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:9px;">
+      <button class="btn-primary" onclick="saveWebhookUrl()">URL 저장</button>
+      <button class="btn-primary" style="background:var(--moss);" onclick="syncUpload(event)">☁️ 지금 업로드</button>
+      <button class="btn-primary" style="background:var(--ink-2);" onclick="syncDownload()">⬇️ 지금 불러오기</button>
+    </div>
+    <div id="syncStatus" style="font-size:11px; color:var(--muted); margin-top:8px;"></div>
+    <div style="margin-top:6px;"><span onclick="openSyncHelp()" style="font-size:11.5px; color:var(--brick); font-weight:700; cursor:pointer;">📄 연동 설정 방법 보기</span></div>
+    <div style="font-size:11px; color:var(--muted); margin-top:8px;">💡 인터넷이 안 되는 곳에서도 이 앱은 기기에 그대로 저장되며 계속 사용 가능합니다. 와이파이가 연결되면 "지금 업로드"로 서버에 올려주세요.</div>
+  </div>
+
+  <div class="card">
     <div class="section-label">환율 메모</div>
     <div style="font-size:12.5px; color:var(--ink-2); line-height:1.7;" class="font-mono">
-      1 CZK(체코 코루나) ≈ 60원 · 1 EUR ≈ 1,700원 · 1 CHF(스위스 프랑) ≈ 1,920원<br>
+      1 CZK(체코 코루나) ≈ 70원 · 1 EUR ≈ 1,700원 · 1 CHF(스위스 프랑) ≈ 1,800원<br>
       <span style="color:var(--muted);">※ 계산 편의를 위한 기준 환율이며 실제 결제 시 환율과 다를 수 있습니다.</span>
     </div>
   </div>
 </div>
+
 
 <!-- ================= TIMELINE ================= -->
 <div class="tab" id="tab-timeline">

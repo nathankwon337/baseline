@@ -3,7 +3,16 @@
    가족 모두 어떤 기기/브라우저로 열어도 별도 입력 없이 동기화 버튼이 바로 동작합니다.
    (비워두면 대시보드 화면에서 각자 URL을 입력해서 저장하는 기존 방식으로 동작)
 ===================================================================== */
-const DEFAULT_WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbxkanqaM7kc88Xf4S9awiof_Q9N99JTJrj5-SRdPJxsplfO962AKMpTRa8fScVTXoS5/exec'; // 예: 'https://script.google.com/macros/s/AKfycb.../exec'
+const DEFAULT_WEBHOOK_URL = ''; // 예: 'https://script.google.com/macros/s/AKfycb.../exec'
+
+// 통화 환산 기준 (1단위당 원화)
+const FX = { EUR: 1700, CZK: 70, CHF: 1800 };
+
+// 여행 전 기간에도, 유럽 도착 이후에도 항상 '중부유럽 시간(프라하 기준)'으로 오늘 날짜를 판단합니다.
+// 체코/독일/오스트리아/스위스/리히텐슈타인 모두 여름철 동일한 시간대(CEST, UTC+2)를 사용합니다.
+function todayInEurope(){
+  return new Intl.DateTimeFormat('en-CA', {timeZone:'Europe/Prague', year:'numeric', month:'2-digit', day:'2-digit'}).format(new Date());
+}
 
 /* =====================================================================
    SEED DATA — 2026_유럽여행_일정_ING.xlsx '상세일정표' 시트 기준
@@ -105,7 +114,7 @@ const SEED_DAYS = [
 ];
 
 const SEED_POOL = [
- {city:'프라하', title:"Pork's Vodičkova", desc:'시그니처 꼴레뇨(479 CZK)+양파수프+감자전. 돼지기름으로 튀긴 감자전이 별미.', map:"Pork's Vodičkova Prague"},
+ {city:'프라하', title:"Pork's Vodičkova", desc:'시그니처 꼴레뇨(479 CZK)+양파수프+감자전. 돼지기름으로 튀긴 감자전이 별미.', map:"Pork's Vodičkova Prague", menuPdf:'Porks_Menu_Analysis.pdf'},
  {city:'프라하', title:'Gran Fierro', desc:'프라하 최고 인기 아르헨티나 스테이크 전문점. 훌륭한 와인 리스트.', map:'Gran Fierro Prague'},
  {city:'프라하', title:'Ginger & Fred', desc:'댄싱하우스 7층 파인다이닝. 블타바강·프라하성 야경 통유리 뷰.', map:'Ginger and Fred restaurant Prague'},
  {city:'프라하', title:"L'Osteria Národní", desc:'대형 화덕피자 반반(Half&Half), 생면 파스타.', map:"L'Osteria Národní Prague"},
@@ -166,23 +175,55 @@ function saveJSON(key, val){ localStorage.setItem(key, JSON.stringify(val)); }
 
 function defaultState(){
   return {
-    days: SEED_DAYS.map((d,di)=>({ id:'day'+di, date:d.date, label:d.label, city:d.city, country:d.country, stay:d.stay, checkin:!!d.checkin,
-      blocks: d.blocks.map(b=>({ id:uid('blk'), period:b.period, tag:b.tag, title:b.title, time:b.time, place:b.place, tip:b.tip, map:b.map, estCost:null, actCost:null, memo:'', status:'none' })) })),
-    pool: SEED_POOL.map(p=>({ id:uid('pool'), city:p.city, title:p.title, desc:p.desc, map:p.map })),
-    shopping: SEED_SHOPPING,
-    checklist: SEED_CHECKLIST.map(c=>({ id:uid('cat'), cat:c.cat, items:c.items.map(label=>({ id:uid('item'), label, done:false })) })),
+    days: SEED_DAYS.map((d,di)=>({ id:'day'+di, date:d.date, label:d.label, city:d.city, country:d.country, stay:d.stay, address:'', checkin:!!d.checkin,
+      blocks: d.blocks.map(b=>({ id:uid('blk'), period:b.period, tag:b.tag, title:b.title, time:b.time, place:b.place, tip:b.tip, map:b.map, actCost:null, memo:'', status:'none', menuPdf:b.menuPdf||'' })) })),
+    pool: SEED_POOL.map(p=>({ id:uid('pool'), city:p.city, title:p.title, desc:p.desc, map:p.map, menuPdf:p.menuPdf||'' })),
+    shopping: SEED_SHOPPING.map(g=>({ id:uid('shop'), country:g.country, city:g.city, loc:g.loc||'', items:g.items.map(label=>({ id:uid('sitem'), label, note:'', checked:false })) })),
+    checklist: SEED_CHECKLIST.map(c=>({ id:uid('cat'), cat:c.cat, items:c.items.map(label=>({ id:uid('item'), label, done:false, note:'' })) })),
     memos: [],
-    shopChecked: {},
-    meta: { webhookUrl:'', lastSync:null }
+    meta: { webhookUrl:'', lastSync:'', passportUrl:'', insuranceUrl:'' }
   };
 }
 let state = loadJSON(STATE_KEY, null) || defaultState();
-if(!state.shopping) state.shopping = SEED_SHOPPING;
+
+/* ---- 마이그레이션: 기존에 저장된 데이터는 절대 지우지 않고, 없는 필드만 채워 넣습니다 ---- */
+if(!state.shopping) state.shopping = defaultState().shopping;
 if(!state.memos) state.memos = [];
-if(!state.shopChecked) state.shopChecked = {};
-if(!state.meta) state.meta = {webhookUrl:'', lastSync:null};
+if(!state.meta) state.meta = {};
+if(state.meta.webhookUrl===undefined) state.meta.webhookUrl='';
+if(state.meta.lastSync===undefined) state.meta.lastSync=null;
+if(state.meta.passportUrl===undefined) state.meta.passportUrl='';
+if(state.meta.insuranceUrl===undefined) state.meta.insuranceUrl='';
 if(!state.meta.webhookUrl && DEFAULT_WEBHOOK_URL) state.meta.webhookUrl = DEFAULT_WEBHOOK_URL;
-state.days.forEach(d=>d.blocks.forEach(b=>{ if(!b.status) b.status='none'; }));
+
+state.days.forEach(d=>{
+  if(d.address===undefined) d.address='';
+  d.blocks.forEach(b=>{
+    if(!b.status) b.status='none';
+    if(b.menuPdf===undefined) b.menuPdf='';
+    if(typeof b.actCost === 'number'){ b.actCost = b.actCost ? {currency:'EUR', amount:b.actCost} : null; } // 구버전(단일 숫자) 데이터 보존 이관
+    if(b.actCost===undefined) b.actCost=null;
+    delete b.estCost; // 예상비용 항목은 요청에 따라 제거(입력값이 있었다면 위에서 이미 실제비용으로 이관되지 않는 한 폐기됨을 안내)
+  });
+});
+state.pool.forEach(p=>{ if(p.menuPdf===undefined) p.menuPdf=''; });
+state.checklist.forEach(cat=>{ cat.items.forEach(it=>{ if(it.note===undefined) it.note=''; }); });
+
+// 쇼핑 리스트: 구버전은 items가 문자열 배열 + 별도 shopChecked 맵을 사용했음 → 항목 객체(id/note/checked)로 이관
+if(state.shopping.length && typeof state.shopping[0].items[0] === 'string'){
+  state.shopping = state.shopping.map((g,gi)=>({
+    id: uid('shop'), country: g.country, city: g.city, loc: g.loc||'',
+    items: g.items.map((label,ii)=>({ id:uid('sitem'), label, note:'', checked: !!(state.shopChecked && state.shopChecked[gi+'-'+ii]) }))
+  }));
+} else {
+  state.shopping.forEach(g=>{
+    if(!g.id) g.id = uid('shop');
+    if(g.loc===undefined) g.loc='';
+    g.items.forEach(it=>{ if(!it.id) it.id=uid('sitem'); if(it.note===undefined) it.note=''; if(it.checked===undefined) it.checked=false; });
+  });
+}
+delete state.shopChecked;
+
 function persist(){ saveJSON(STATE_KEY, state); }
 
 let activeDayId = null;
@@ -206,9 +247,10 @@ function switchTab(name){
 function daysBetween(a,b){ return Math.round((b-a)/86400000); }
 
 function renderDashboard(){
-  const today = new Date(); today.setHours(0,0,0,0);
-  const start = new Date(state.days[0].date);
-  const end = new Date(state.days[state.days.length-1].date);
+  const todayStr = todayInEurope();
+  const today = new Date(todayStr+'T00:00:00Z');
+  const start = new Date(state.days[0].date+'T00:00:00Z');
+  const end = new Date(state.days[state.days.length-1].date+'T00:00:00Z');
   const totalDays = daysBetween(start,end)+1;
   let elapsed = daysBetween(start, today);
   let dday = daysBetween(today, start);
@@ -221,15 +263,15 @@ function renderDashboard(){
 
   if(dday > 0){
     ddayText.textContent = 'D-'+dday;
-    ddaySub.textContent = '2026.07.29(수) 출발까지';
+    ddaySub.textContent = '2026.07.29(수) 출발까지 (유럽 현지시간 기준)';
     progressBar.style.width = '0%'; progressLabel.textContent = '0 / '+totalDays+' 일차';
   } else if(dday === 0){
-    ddayText.textContent = 'D-DAY'; ddaySub.textContent = '오늘 출발! 좋은 여행 되세요 ✈️';
+    ddayText.textContent = 'D-DAY'; ddaySub.textContent = '오늘 출발! 좋은 여행 되세요 ✈️ (유럽 현지시간 기준)';
     currentDay = state.days[0];
     progressBar.style.width = (100/totalDays)+'%'; progressLabel.textContent = '1 / '+totalDays+' 일차';
   } else if(elapsed >= 0 && elapsed < totalDays){
     const dayNum = elapsed+1;
-    ddayText.textContent = dayNum+'일차'; ddaySub.textContent = '여정이 진행 중입니다';
+    ddayText.textContent = dayNum+'일차'; ddaySub.textContent = '여정이 진행 중입니다 (유럽 현지시간 기준)';
     currentDay = state.days[elapsed];
     progressBar.style.width = Math.round(dayNum/totalDays*100)+'%'; progressLabel.textContent = dayNum+' / '+totalDays+' 일차';
   } else {
@@ -240,13 +282,17 @@ function renderDashboard(){
 
   const stayDay = currentDay || state.days[0];
   document.getElementById('stayCard').innerHTML = `
-    <div style="display:flex; gap:12px; align-items:center;">
+    <div style="display:flex; gap:12px; align-items:flex-start;">
       <div style="width:44px; height:44px; border-radius:11px; background:var(--paper-2); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
         <svg width="22" height="22" fill="none" stroke="var(--gold-deep)" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 21h18M5 21V7l8-4v18M13 21V11l6 4v6M9 9v.01M9 12v.01M9 15v.01"/></svg>
       </div>
       <div style="flex:1;">
-        <div style="font-weight:700; font-size:15px;">${esc(stayDay.stay)}</div>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <div style="font-weight:700; font-size:15px;">${esc(stayDay.stay)}</div>
+          <span class="icon-btn" onclick="openStayModal('${stayDay.id}')">✎</span>
+        </div>
         <div style="font-size:12px; color:var(--muted); margin-top:2px;">${esc(stayDay.city)}, ${esc(stayDay.country)} · ${esc(stayDay.label)}</div>
+        ${stayDay.address? `<div style="font-size:11.5px; color:var(--ink-2); margin-top:4px;">📍 ${esc(stayDay.address)}</div>` : `<div style="font-size:11px; color:var(--muted); margin-top:4px; font-style:italic;">주소 미입력 — ✎ 눌러서 예약 확인서의 정확한 주소를 추가해주세요</div>`}
       </div>
       <span class="badge ${stayDay.checkin?'badge-pending':'badge-done'}">${stayDay.checkin? '체크인 예정' : '투숙 중'}</span>
     </div>`;
@@ -256,11 +302,41 @@ function renderDashboard(){
   renderSyncStatus();
 }
 
+function openStayModal(dayId){
+  const day = state.days.find(d=>d.id===dayId);
+  const html = `
+    <div class="font-display" style="font-size:17px; font-weight:700; margin-bottom:6px;">숙소 정보 수정</div>
+    <label>숙소명<input id="sm_name" value="${esc(day.stay)}"></label>
+    <label>주소<textarea id="sm_addr" placeholder="예약 확인서의 정확한 주소를 입력해주세요">${esc(day.address||'')}</textarea></label>
+    <div style="display:flex; gap:8px; margin-top:14px;">
+      <button class="btn-primary" style="flex:1;" onclick="saveStayModal('${dayId}')">저장</button>
+    </div>
+    <button class="btn-cancel" onclick="closeFormModal()">취소</button>`;
+  openFormModal(html);
+}
+function saveStayModal(dayId){
+  const day = state.days.find(d=>d.id===dayId);
+  const name = document.getElementById('sm_name').value.trim();
+  day.stay = name || day.stay;
+  day.address = document.getElementById('sm_addr').value.trim();
+  persist(); closeFormModal(); renderDashboard();
+}
+
 function renderBudget(){
-  let est=0, act=0;
-  state.days.forEach(d=>d.blocks.forEach(b=>{ est += Number(b.estCost)||0; act += Number(b.actCost)||0; }));
-  document.getElementById('budgetEst').textContent = est.toLocaleString()+'원';
-  document.getElementById('budgetAct').textContent = act.toLocaleString()+'원';
+  const byCur = {EUR:0, CZK:0, CHF:0};
+  let krwTotal = 0;
+  state.days.forEach(d=>d.blocks.forEach(b=>{
+    if(b.actCost && b.actCost.amount){
+      byCur[b.actCost.currency] = (byCur[b.actCost.currency]||0) + Number(b.actCost.amount);
+      krwTotal += Number(b.actCost.amount) * (FX[b.actCost.currency]||0);
+    }
+  }));
+  document.getElementById('budgetAct').textContent = Math.round(krwTotal).toLocaleString()+'원';
+  const parts = [];
+  if(byCur.EUR) parts.push('EUR '+byCur.EUR.toLocaleString());
+  if(byCur.CZK) parts.push('CZK '+byCur.CZK.toLocaleString());
+  if(byCur.CHF) parts.push('CHF '+byCur.CHF.toLocaleString());
+  document.getElementById('budgetBreakdown').textContent = parts.length? parts.join(' · ') : '아직 입력된 사용비용이 없습니다';
 }
 
 function renderRouteLine(elapsed){
@@ -292,9 +368,9 @@ function renderRouteLine(elapsed){
 ===================================================================== */
 function renderDayChips(){
   const wrap = document.getElementById('dayChips');
-  const today = new Date(); today.setHours(0,0,0,0);
+  const todayStr = todayInEurope();
   wrap.innerHTML = state.days.map(d=>{
-    const isToday = new Date(d.date).getTime()===today.getTime();
+    const isToday = d.date===todayStr;
     return `<div class="daychip ${d.id===activeDayId?'active':''} ${isToday?'today':''}" onclick="selectDay('${d.id}')">
       <div class="d">${esc(d.label)}</div><div class="c">${esc(d.city)}</div>
     </div>`;
@@ -303,13 +379,13 @@ function renderDayChips(){
 function selectDay(id){ activeDayId = id; renderDayChips(); renderTimelineBody(); renderPool(); }
 function renderTimeline(){
   if(!activeDayId){
-    const today = new Date(); today.setHours(0,0,0,0);
-    const found = state.days.find(d=>new Date(d.date).getTime()>=today.getTime());
+    const todayStr = todayInEurope();
+    const found = state.days.find(d=>d.date>=todayStr);
     activeDayId = (found || state.days[0]).id;
   }
   renderDayChips(); renderTimelineBody(); renderPool();
 }
-function tagIcon(tag){ return {'이동':'🚌','관광':'📍','식사':'🍽️','숙소':'🏨'}[tag] || '•'; }
+function tagIcon(tag){ return {'이동':'🚌','관광':'📍','식사':'🍽️','숙소':'🏨','쇼핑':'🛍️'}[tag] || '•'; }
 function statusMeta(status){
   if(status==='done') return {label:'✅ 완료', cls:'status-done'};
   if(status==='pass') return {label:'⏭ Pass', cls:'status-pass'};
@@ -344,7 +420,12 @@ function renderTimelineBody(){
   let currentPeriod = null, inner = '';
   day.blocks.forEach(b=>{
     if(b.period !== currentPeriod){ inner += `<div class="tl-period">${esc(b.period)}</div>`; currentPeriod = b.period; }
-    const costRow = (b.estCost||b.actCost) ? `<div style="display:flex; gap:8px; margin-top:8px;">${b.estCost?`<span class="badge badge-pending">예상 ${Number(b.estCost).toLocaleString()}원</span>`:''}${b.actCost?`<span class="badge badge-done">지출 ${Number(b.actCost).toLocaleString()}원</span>`:''}</div>` : '';
+    let costRow = '';
+    if(b.actCost && b.actCost.amount){
+      const krw = Math.round(Number(b.actCost.amount) * (FX[b.actCost.currency]||0));
+      costRow = `<div style="margin-top:8px;"><span class="badge badge-done">지출 ${Number(b.actCost.amount).toLocaleString()} ${esc(b.actCost.currency)} (≈ ${krw.toLocaleString()}원)</span></div>`;
+    }
+    const menuRow = b.menuPdf ? `<div style="margin-top:8px;"><span onclick="event.stopPropagation(); openMenuPdf('${b.menuPdf.replace(/'/g,"\\'")}')" style="font-size:11.5px; color:var(--brick); font-weight:700; cursor:pointer;">📋 메뉴판 보기 (${esc(b.menuPdf)})</span></div>` : '';
     const st = statusMeta(b.status);
     inner += `<div class="tl-card tag-${esc(b.tag)} ${st.cls}" data-id="${b.id}" onclick="openBlockModal('${day.id}','${b.id}')">
       <div class="tl-top">
@@ -362,21 +443,24 @@ function renderTimelineBody(){
       ${b.tip?`<div class="tl-tip">💡 ${esc(b.tip)}</div>`:''}
       ${b.memo?`<div class="tl-tip" style="background:#EFEAF7;">📝 ${esc(b.memo)}</div>`:''}
       ${costRow}
+      ${menuRow}
     </div>`;
   });
   container.innerHTML = inner;
 
 
-  Sortable.create(container, {
-    animation:180, handle:'.drag-handle', ghostClass:'sortable-ghost', dragClass:'sortable-drag',
-    onEnd:function(){
-      const newIds = Array.from(container.querySelectorAll('.tl-card')).map(el=>el.dataset.id);
-      const map = {}; day.blocks.forEach(b=>map[b.id]=b);
-      day.blocks = newIds.map(id=>map[id]);
-      persist();
-      renderTimelineBody();
-    }
-  });
+  if(typeof Sortable !== 'undefined'){
+    Sortable.create(container, {
+      animation:180, handle:'.drag-handle', ghostClass:'sortable-ghost', dragClass:'sortable-drag',
+      onEnd:function(){
+        const newIds = Array.from(container.querySelectorAll('.tl-card')).map(el=>el.dataset.id);
+        const map = {}; day.blocks.forEach(b=>map[b.id]=b);
+        day.blocks = newIds.map(id=>map[id]);
+        persist();
+        renderTimelineBody();
+      }
+    });
+  }
 }
 
 function renderPool(){
@@ -392,8 +476,9 @@ function renderPool(){
           <span class="icon-btn danger" onclick="deletePoolSpot('${s.id}')">🗑</span>
         </div>
       </div>
-      <div style="margin-top:7px; display:flex; gap:14px; align-items:center;">
+      <div style="margin-top:7px; display:flex; gap:14px; align-items:center; flex-wrap:wrap;">
         ${s.map?`<span onclick="openMap('${s.map.replace(/'/g,"\\'")}')" style="font-size:11px; color:var(--brick); font-weight:700; cursor:pointer;">📍 지도 보기</span>`:''}
+        ${s.menuPdf?`<span onclick="openMenuPdf('${s.menuPdf.replace(/'/g,"\\'")}')" style="font-size:11px; color:var(--brick); font-weight:700; cursor:pointer;">📋 메뉴판 보기</span>`:''}
         <span onclick="addPoolToTimeline('${s.id}')" style="font-size:11px; color:var(--moss); font-weight:700; cursor:pointer;">＋ 오늘 일정에 추가</span>
       </div>
     </div>`).join('');
@@ -403,13 +488,17 @@ function renderPool(){
 }
 
 function openMap(query){ window.open('https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(query), '_blank'); }
+function openMenuPdf(filename){ window.open('menus/'+encodeURIComponent(filename), '_blank'); }
 
 /* --- Block create/edit modal --- */
 function openBlockModal(dayId, blockId){
   const day = state.days.find(d=>d.id===dayId);
-  const block = blockId ? day.blocks.find(b=>b.id===blockId) : {period: day.blocks.length? day.blocks[day.blocks.length-1].period : '오전', tag:'관광', title:'', time:'', place:'', tip:'', map:'', estCost:null, actCost:null, memo:'', status:'none'};
+  const block = blockId ? day.blocks.find(b=>b.id===blockId) : {period: day.blocks.length? day.blocks[day.blocks.length-1].period : '오전', tag:'관광', title:'', time:'', place:'', tip:'', map:'', actCost:null, memo:'', status:'none', menuPdf:''};
   const periods = ['아침','오전','오후','저녁','밤','추가 일정'];
-  const tags = ['이동','관광','식사','숙소'];
+  const tags = ['이동','관광','식사','숙소','쇼핑'];
+  const curAmt = block.actCost? block.actCost.amount : '';
+  const curCur = block.actCost? block.actCost.currency : 'EUR';
+  const initKrw = curAmt? Math.round(Number(curAmt)*(FX[curCur]||0)).toLocaleString()+'원' : '0원';
   const html = `
     <div class="font-display" style="font-size:17px; font-weight:700; margin-bottom:6px;">${blockId?'일정 카드 수정':'새 일정 카드 추가'}</div>
     <div class="formGrid">
@@ -428,10 +517,16 @@ function openBlockModal(dayId, blockId){
     </div>
     <label>팁/설명<textarea id="fm_tip">${esc(block.tip)}</textarea></label>
     <label>구글맵 검색어<input id="fm_map" value="${esc(block.map)}" placeholder="영문 장소명 권장"></label>
+    <label>메뉴판 PDF 파일명(선택)<input id="fm_menu" value="${esc(block.menuPdf||'')}" placeholder="예: Porks_Menu_Analysis.pdf"></label>
     <div class="formGrid">
-      <label>예상비용(원)<input id="fm_est" type="number" value="${block.estCost??''}" placeholder="0"></label>
-      <label>실제 사용비용(원)<input id="fm_act" type="number" value="${block.actCost??''}" placeholder="0"></label>
+      <label>실제 사용비용<input id="fm_actamt" type="number" value="${curAmt}" placeholder="0" oninput="updateKrwPreview()"></label>
+      <label>통화<select id="fm_actcur" oninput="updateKrwPreview()" onchange="updateKrwPreview()">
+        <option value="EUR" ${curCur==='EUR'?'selected':''}>EUR (유로)</option>
+        <option value="CZK" ${curCur==='CZK'?'selected':''}>CZK (코루나)</option>
+        <option value="CHF" ${curCur==='CHF'?'selected':''}>CHF (프랑)</option>
+      </select></label>
     </div>
+    <div style="font-size:11.5px; color:var(--muted); margin:2px 0 6px;">환산비용(원): <span id="fm_krwPreview" class="font-mono">${initKrw}</span></div>
     <label>현지 메모<textarea id="fm_memo">${esc(block.memo||'')}</textarea></label>
     <div style="display:flex; gap:8px; margin-top:14px;">
       <button class="btn-primary" style="flex:1;" onclick="saveBlockModal('${dayId}', ${blockId?`'${blockId}'`:null})">저장</button>
@@ -441,12 +536,19 @@ function openBlockModal(dayId, blockId){
     <button class="btn-cancel" onclick="closeFormModal()">취소</button>`;
   openFormModal(html);
 }
+function updateKrwPreview(){
+  const amt = Number(document.getElementById('fm_actamt').value)||0;
+  const cur = document.getElementById('fm_actcur').value;
+  const krw = Math.round(amt*(FX[cur]||0));
+  document.getElementById('fm_krwPreview').textContent = krw.toLocaleString()+'원';
+}
 function saveBlockModal(dayId, blockId){
   const day = state.days.find(d=>d.id===dayId);
   const val = id=>document.getElementById(id).value;
   const title = val('fm_title').trim();
   if(!title){ alert('제목을 입력해주세요.'); return; }
-  const data = { period: val('fm_period'), tag: val('fm_tag'), title, time: val('fm_time').trim(), place: val('fm_place').trim(), tip: val('fm_tip').trim(), map: val('fm_map').trim(), estCost: val('fm_est')? Number(val('fm_est')) : null, actCost: val('fm_act')? Number(val('fm_act')) : null, memo: val('fm_memo').trim(), status: val('fm_status') };
+  const amt = val('fm_actamt').trim();
+  const data = { period: val('fm_period'), tag: val('fm_tag'), title, time: val('fm_time').trim(), place: val('fm_place').trim(), tip: val('fm_tip').trim(), map: val('fm_map').trim(), menuPdf: val('fm_menu').trim(), memo: val('fm_memo').trim(), status: val('fm_status'), actCost: amt? {currency: val('fm_actcur'), amount: Number(amt)} : null };
   if(blockId){
     const idx = day.blocks.findIndex(b=>b.id===blockId);
     day.blocks[idx] = {...day.blocks[idx], ...data};
@@ -465,7 +567,7 @@ function demoteToPool(dayId, blockId){
   const day = state.days.find(d=>d.id===dayId);
   const block = day.blocks.find(b=>b.id===blockId);
   if(!confirm('"'+block.title+'" 카드를 일정에서 빼고 추천 스팟 풀로 옮길까요?')) return;
-  state.pool.push({id:uid('pool'), city:day.city, title:block.title.replace(/^📌\s*/,'').replace(/^★\s*/,''), desc: block.tip||block.place||'', map: block.map||''});
+  state.pool.push({id:uid('pool'), city:day.city, title:block.title.replace(/^📌\s*/,'').replace(/^★\s*/,''), desc: block.tip||block.place||'', map: block.map||'', menuPdf: block.menuPdf||''});
   day.blocks = day.blocks.filter(b=>b.id!==blockId);
   persist(); closeFormModal(); renderTimelineBody(); renderPool();
 }
@@ -473,13 +575,14 @@ function demoteToPool(dayId, blockId){
 /* --- Pool create/edit modal --- */
 function openPoolModal(poolId){
   const day = state.days.find(d=>d.id===activeDayId);
-  const spot = poolId ? state.pool.find(p=>p.id===poolId) : {city: day.city, title:'', desc:'', map:''};
+  const spot = poolId ? state.pool.find(p=>p.id===poolId) : {city: day.city, title:'', desc:'', map:'', menuPdf:''};
   const html = `
     <div class="font-display" style="font-size:17px; font-weight:700; margin-bottom:6px;">${poolId?'추천 스팟 수정':'새 추천 스팟 추가'}</div>
     <label>도시<input id="pm_city" value="${esc(spot.city)}" placeholder="예: 프라하"></label>
     <label>이름<input id="pm_title" value="${esc(spot.title)}" placeholder="가게/장소 이름"></label>
     <label>설명<textarea id="pm_desc">${esc(spot.desc)}</textarea></label>
     <label>구글맵 검색어<input id="pm_map" value="${esc(spot.map)}" placeholder="영문 장소명 권장"></label>
+    <label>메뉴판 PDF 파일명(선택)<input id="pm_menu" value="${esc(spot.menuPdf||'')}" placeholder="예: Porks_Menu_Analysis.pdf"></label>
     <div style="display:flex; gap:8px; margin-top:14px;">
       <button class="btn-primary" style="flex:1;" onclick="savePoolModal(${poolId?`'${poolId}'`:null})">저장</button>
       ${poolId? `<button class="btn-danger" onclick="deletePoolSpot('${poolId}')">삭제</button>` : ''}
@@ -491,7 +594,7 @@ function savePoolModal(poolId){
   const val = id=>document.getElementById(id).value.trim();
   const title = val('pm_title');
   if(!title){ alert('이름을 입력해주세요.'); return; }
-  const data = {city: val('pm_city')||'미지정', title, desc: val('pm_desc'), map: val('pm_map')};
+  const data = {city: val('pm_city')||'미지정', title, desc: val('pm_desc'), map: val('pm_map'), menuPdf: val('pm_menu')};
   if(poolId){
     const idx = state.pool.findIndex(p=>p.id===poolId);
     state.pool[idx] = {...state.pool[idx], ...data};
@@ -508,7 +611,7 @@ function deletePoolSpot(poolId){
 function addPoolToTimeline(poolId){
   const spot = state.pool.find(p=>p.id===poolId);
   const day = state.days.find(d=>d.id===activeDayId);
-  day.blocks.push({id:uid('blk'), period:'추가 일정', tag:'관광', title:'📌 '+spot.title, time:'', place:spot.desc, tip:'추천 스팟 풀에서 추가됨', map:spot.map, estCost:null, actCost:null, memo:'', status:'none'});
+  day.blocks.push({id:uid('blk'), period:'추가 일정', tag:'관광', title:'📌 '+spot.title, time:'', place:spot.desc, tip:'추천 스팟 풀에서 추가됨', map:spot.map, actCost:null, memo:'', status:'none', menuPdf:spot.menuPdf||''});
   persist(); renderTimelineBody();
 }
 
@@ -531,13 +634,16 @@ function renderChecklist(){
         </div>
       </div>
       ${cat.items.map(item=>`
-        <div class="chk-item">
-          <div class="chk-box ${item.done?'on':''}" onclick="toggleChk('${cat.id}','${item.id}')">
-            <svg viewBox="0 0 24 24" fill="none" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+        <div class="chk-item-wrap">
+          <div class="chk-item">
+            <div class="chk-box ${item.done?'on':''}" onclick="toggleChk('${cat.id}','${item.id}')">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+            </div>
+            <div class="chk-label ${item.done?'done':''}">${esc(item.label)}</div>
+            <span class="icon-btn" onclick="editChkItem('${cat.id}','${item.id}')">✎</span>
+            <span class="icon-btn danger" onclick="deleteChkItem('${cat.id}','${item.id}')">×</span>
           </div>
-          <div class="chk-label ${item.done?'done':''}">${esc(item.label)}</div>
-          <span class="icon-btn" onclick="editChkItem('${cat.id}','${item.id}')">✎</span>
-          <span class="icon-btn danger" onclick="deleteChkItem('${cat.id}','${item.id}')">×</span>
+          <input class="chk-note-input" value="${esc(item.note||'')}" placeholder="비고 (선택)" onchange="updateChkNote('${cat.id}','${item.id}', this.value)">
         </div>`).join('')}
       <div style="display:flex; gap:6px; margin-top:9px;">
         <input id="newitem-${cat.id}" placeholder="새 항목 추가" style="flex:1; border:1px solid var(--line); border-radius:8px; padding:7px 9px; font-size:12.5px;" onkeydown="if(event.key==='Enter')addChecklistItem('${cat.id}')">
@@ -577,8 +683,13 @@ function addChecklistItem(catId){
   const input = document.getElementById('newitem-'+catId);
   const val = input.value.trim(); if(!val) return;
   const cat = state.checklist.find(c=>c.id===catId);
-  cat.items.push({id:uid('item'), label:val, done:false});
+  cat.items.push({id:uid('item'), label:val, done:false, note:''});
   input.value=''; persist(); renderChecklist();
+}
+function updateChkNote(catId, itemId, val){
+  const cat = state.checklist.find(c=>c.id===catId);
+  const item = cat.items.find(i=>i.id===itemId);
+  item.note = val; persist();
 }
 function editCatName(catId){
   const cat = state.checklist.find(c=>c.id===catId);
@@ -615,21 +726,93 @@ function renderMemo(){
 function renderShopping(){
   const body = document.getElementById('shoppingBody');
   let html = '';
-  state.shopping.forEach((grp, gi)=>{
-    html += `<div class="shop-city"><span class="shop-country-tag">${esc(grp.country)}</span>${esc(grp.city)}</div>`;
-    grp.items.forEach((item, ii)=>{
-      const key = gi+'-'+ii;
-      const isOn = !!state.shopChecked[key];
-      html += `<div class="chk-item">
-        <div class="chk-box ${isOn?'on':''}" onclick="toggleShop('${key}')"><svg viewBox="0 0 24 24" fill="none" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg></div>
-        <div class="chk-label ${isOn?'done':''}" style="font-size:13px;">${esc(item)}</div>
+  state.shopping.forEach(grp=>{
+    html += `<div class="card" style="margin-bottom:12px;">
+      <div class="shop-city" style="display:flex; justify-content:space-between; align-items:center; margin-top:0;">
+        <div><span class="shop-country-tag">${esc(grp.country)}</span>${esc(grp.city)}</div>
+        <div style="display:flex; gap:8px;">
+          <span class="icon-btn" onclick="editShopGroup('${grp.id}')">✎</span>
+          <span class="icon-btn danger" onclick="deleteShopGroup('${grp.id}')">🗑</span>
+        </div>
+      </div>`;
+    grp.items.forEach(item=>{
+      html += `<div class="chk-item-wrap">
+        <div class="chk-item">
+          <div class="chk-box ${item.checked?'on':''}" onclick="toggleShopItem('${grp.id}','${item.id}')"><svg viewBox="0 0 24 24" fill="none" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg></div>
+          <div class="chk-label ${item.checked?'done':''}" style="font-size:13px;">${esc(item.label)}</div>
+          <span class="icon-btn" onclick="editShopItem('${grp.id}','${item.id}')">✎</span>
+          <span class="icon-btn danger" onclick="deleteShopItem('${grp.id}','${item.id}')">×</span>
+        </div>
+        <input class="chk-note-input" value="${esc(item.note||'')}" placeholder="비고 (선택)" onchange="updateShopNote('${grp.id}','${item.id}', this.value)">
       </div>`;
     });
-    if(grp.loc) html += `<div style="font-size:11.5px; color:var(--muted); margin-top:6px; margin-bottom:4px;">📍 ${esc(grp.loc)}</div>`;
+    html += `<div style="display:flex; gap:6px; margin-top:9px;">
+        <input id="newshopitem-${grp.id}" placeholder="새 항목 추가" style="flex:1; border:1px solid var(--line); border-radius:8px; padding:7px 9px; font-size:12.5px;" onkeydown="if(event.key==='Enter')addShopItem('${grp.id}')">
+        <button class="btn-ghost" onclick="addShopItem('${grp.id}')">추가</button>
+      </div>`;
+    if(grp.loc) html += `<div style="font-size:11.5px; color:var(--muted); margin-top:8px;">📍 ${esc(grp.loc)}</div>`;
+    html += `</div>`;
   });
+  html += `<div class="card">
+    <div class="section-label" style="margin-bottom:8px;">새 쇼핑 장소 추가</div>
+    <div class="formGrid">
+      <input id="newShopCountry" placeholder="국가 (예: 체코)" style="border:1px solid var(--line); border-radius:8px; padding:9px 10px; font-size:13px;">
+      <input id="newShopCity" placeholder="도시/장소 (예: 프라하)" style="border:1px solid var(--line); border-radius:8px; padding:9px 10px; font-size:13px;">
+    </div>
+    <button class="btn-primary" style="width:100%; margin-top:9px;" onclick="addShopGroup()">장소 추가</button>
+  </div>`;
   body.innerHTML = html;
 }
-function toggleShop(key){ state.shopChecked[key] = !state.shopChecked[key]; persist(); renderShopping(); }
+function toggleShopItem(groupId, itemId){
+  const grp = state.shopping.find(g=>g.id===groupId);
+  const item = grp.items.find(i=>i.id===itemId);
+  item.checked = !item.checked; persist(); renderShopping();
+}
+function editShopItem(groupId, itemId){
+  const grp = state.shopping.find(g=>g.id===groupId);
+  const item = grp.items.find(i=>i.id===itemId);
+  const val = prompt('항목 이름 수정', item.label);
+  if(val===null || !val.trim()) return;
+  item.label = val.trim(); persist(); renderShopping();
+}
+function deleteShopItem(groupId, itemId){
+  if(!confirm('이 항목을 삭제할까요?')) return;
+  const grp = state.shopping.find(g=>g.id===groupId);
+  grp.items = grp.items.filter(i=>i.id!==itemId); persist(); renderShopping();
+}
+function updateShopNote(groupId, itemId, val){
+  const grp = state.shopping.find(g=>g.id===groupId);
+  const item = grp.items.find(i=>i.id===itemId);
+  item.note = val; persist();
+}
+function addShopItem(groupId){
+  const input = document.getElementById('newshopitem-'+groupId);
+  const val = input.value.trim(); if(!val) return;
+  const grp = state.shopping.find(g=>g.id===groupId);
+  grp.items.push({id:uid('sitem'), label:val, note:'', checked:false});
+  input.value=''; persist(); renderShopping();
+}
+function editShopGroup(groupId){
+  const grp = state.shopping.find(g=>g.id===groupId);
+  const country = prompt('국가 이름 수정', grp.country);
+  if(country===null) return;
+  const city = prompt('도시/장소 이름 수정', grp.city);
+  if(city===null) return;
+  grp.country = country.trim()||grp.country; grp.city = city.trim()||grp.city;
+  persist(); renderShopping();
+}
+function deleteShopGroup(groupId){
+  if(!confirm('이 쇼핑 장소 전체를 삭제할까요?')) return;
+  state.shopping = state.shopping.filter(g=>g.id!==groupId); persist(); renderShopping();
+}
+function addShopGroup(){
+  const country = document.getElementById('newShopCountry').value.trim();
+  const city = document.getElementById('newShopCity').value.trim();
+  if(!city){ alert('도시/장소 이름을 입력해주세요.'); return; }
+  state.shopping.push({id:uid('shop'), country: country||'미지정', city, loc:'', items:[]});
+  document.getElementById('newShopCountry').value=''; document.getElementById('newShopCity').value='';
+  persist(); renderShopping();
+}
 
 /* =====================================================================
    SYNC (Google Apps Script Web App)
@@ -696,6 +879,26 @@ function openFormModal(html){
   document.getElementById('formModalBg').style.display = 'flex';
 }
 function closeFormModal(){ document.getElementById('formModalBg').style.display = 'none'; }
+
+/* --- 긴급 링크(여권사본/여행자보험) 연결 --- */
+function openQuickLinkModal(kind, title, help){
+  const url = state.meta[kind+'Url']||'';
+  const html = `
+    <div class="font-display" style="font-size:17px; font-weight:700; margin-bottom:6px;">${esc(title)}</div>
+    <div style="font-size:12.5px; color:var(--ink-2); line-height:1.6; white-space:pre-line; margin-bottom:8px;">${esc(help)}</div>
+    <label>링크 URL<input id="fm_linkurl" value="${esc(url)}" placeholder="https://..."></label>
+    <div style="display:flex; gap:8px; margin-top:14px;">
+      <button class="btn-primary" style="flex:1;" onclick="saveQuickLink('${kind}')">저장하고 열기</button>
+      ${url? `<button class="btn-ghost" onclick="window.open('${url.replace(/'/g,"\\'")}','_blank')">바로 열기</button>` : ''}
+    </div>
+    <button class="btn-cancel" onclick="closeFormModal()">닫기</button>`;
+  openFormModal(html);
+}
+function saveQuickLink(kind){
+  const val = document.getElementById('fm_linkurl').value.trim();
+  state.meta[kind+'Url'] = val; persist(); closeFormModal();
+  if(val) window.open(val, '_blank');
+}
 
 /* =====================================================================
    INIT
