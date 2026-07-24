@@ -1177,6 +1177,11 @@ function currentRestaurantRegion(){
   return RESTAURANT_REGIONS.find(r=>r.id===state.restaurantOrder.region) || RESTAURANT_REGIONS[0];
 }
 function changeRestaurantRegion(id){
+  if(state.restaurantOrder.region !== id){
+    // 지역이 바뀌면 이전 지역 메뉴 id가 새 지역에 없을 수 있어 주문 목록을 초기화
+    state.restaurantOrder.food = [];
+    state.restaurantOrder.drink = [];
+  }
   state.restaurantOrder.region = id;
   persist();
   renderRestaurant();
@@ -1338,6 +1343,14 @@ function clearOrder(kind){
   persist();
   renderRestaurant();
 }
+const ORDER_PHRASE_TEMPLATE = {
+  cz: {start:'Dal bych si, prosím: ', end:'.'},
+  de: {start:'Ich hätte gern: ', end:', bitte.'},
+  at: {start:'Ich hätte gern: ', end:', bitte.'},
+  ch: {start:'Ich hätte gern: ', end:', bitte.'},
+  li: {start:'Ich hätte gern: ', end:', bitte.'},
+};
+
 function buildOrderPhrase(kind){
   const region = currentRestaurantRegion();
   const menu = (kind==='food' ? RESTAURANT_FOOD : RESTAURANT_DRINK)[region.id] || [];
@@ -1345,10 +1358,16 @@ function buildOrderPhrase(kind){
   if(!list.length) return;
   const parts = list.map(o=>{
     const item = menu.find(m=>m.id===o.itemId);
-    return `${o.qty} ${item.local}`;
-  });
-  const phrase = `Dal bych si, prosím: ${parts.join(', ')}.`;
+    return item ? `${o.qty} ${item.local}` : null;
+  }).filter(Boolean);
+  if(!parts.length){
+    alert('주문 항목을 찾을 수 없습니다. 지역을 바꾸신 경우 주문 목록을 다시 담아주세요.');
+    return;
+  }
+  const tmpl = ORDER_PHRASE_TEMPLATE[region.id] || ORDER_PHRASE_TEMPLATE.de;
+  const phrase = `${tmpl.start}${parts.join(', ')}${tmpl.end}`;
   const resultEl = document.getElementById(kind+'PhraseResult');
+  if(!resultEl) return;
   resultEl.innerHTML = `
     <div style="background:var(--paper-2); border-radius:10px; padding:12px; margin-top:10px;">
       <div class="font-display" style="font-size:16px; font-weight:700; line-height:1.5; margin-bottom:8px;">${esc(phrase)}</div>
