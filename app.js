@@ -165,6 +165,89 @@ const SEED_CHECKLIST = [
 ];
 
 /* =====================================================================
+   여행 회화 (독일어 / 체코어) — Sentence_4/6 xlsx 기준
+===================================================================== */
+const PHRASES = [
+ {cat:'인사 & 자기소개', kr:'안녕하세요! (아침 인사)', de:'Guten Morgen!', cs:'Dobré ráno!'},
+ {cat:'인사 & 자기소개', kr:'감사합니다.', de:'Danke (schön).', cs:'Děkuji (mnohem).'},
+ {cat:'인사 & 자기소개', kr:'천만에요. / 여기 있습니다.', de:'Bitte (schön).', cs:'Prosím.'},
+ {cat:'인사 & 자기소개', kr:'미안합니다. / 죄송합니다.', de:'Entschuldigung.', cs:'Promiňte.'},
+ {cat:'인사 & 자기소개', kr:'괜찮아요.', de:'Kein Problem.', cs:'Žádný problém.'},
+ {cat:'인사 & 자기소개', kr:'잘 가요!', de:'Tschüss!', cs:'Ahoj!'},
+ {cat:'인사 & 자기소개', kr:'잘 가요!', de:'Ciao!', cs:'Čau!'},
+ {cat:'인사 & 자기소개', kr:'안녕히 계십시오.', de:'(Auf) Wiedersehen.', cs:'Na shledanou.'},
+ {cat:'인사 & 자기소개', kr:'좋은 하루 보내세요!', de:'(Einen) schönen Tag noch!', cs:'Hezký den!'},
+ {cat:'기본 표현', kr:'네, 부탁합니다.', de:'Ja, bitte.', cs:'Ano, prosím.'},
+ {cat:'기본 표현', kr:'좋아요.', de:'Gern(e).', cs:'Rád(a).'},
+ {cat:'기본 표현', kr:'아니요, 괜찮아요.', de:'Nein, danke.', cs:'Ne, děkuji.'},
+ {cat:'기본 표현', kr:'괜찮아요. / 알겠습니다.', de:'Alles klar.', cs:'Jasně.'},
+ {cat:'기본 표현', kr:'좋아요. / 다 괜찮아요.', de:'Alles gut.', cs:'Všechno v pořádku.'},
+ {cat:'기본 표현', kr:'그게 다예요.', de:'Das war\'s.', cs:'To je vše.'},
+ {cat:'기본 표현', kr:'당연하죠.', de:'Natürlich.', cs:'Samozřejmě.'},
+ {cat:'기본 표현', kr:'정말요?', de:'Echt?', cs:'Vážně?'},
+ {cat:'기본 표현', kr:'잠시만요.', de:'Einen Moment, bitte.', cs:'Okamžik, prosím.'},
+ {cat:'기본 표현', kr:'모르겠어요.', de:'Ich weiß nicht.', cs:'Nevím.'},
+ {cat:'카페 & 식당', kr:'커피 주세요.', de:'Ich hätte gern einen Kaffee.', cs:'Dal(a) bych si kávu.'},
+ {cat:'카페 & 식당', kr:'커피 한 잔 부탁해요.', de:'Einen Kaffee, bitte.', cs:'Jednu kávu, prosím.'},
+ {cat:'기본 표현', kr:'저 시간 있어요.', de:'Ich habe Zeit.', cs:'Mám čas.'},
+ {cat:'도움 요청', kr:'볼펜 가지고 계신가요?', de:'Haben Sie einen Kuli?', cs:'Máte propisku?'},
+ {cat:'인사 & 자기소개', kr:'저는 한국에서 왔어요.', de:'Ich komme aus Südkorea.', cs:'Pocházím z Jižní Koreje.'},
+ {cat:'인사 & 자기소개', kr:'독일어 조금 해요.', de:'Ich kann etwas Deutsch.', cs:'Umím trochu německy.'},
+ {cat:'길찾기 & 이동', kr:'화장실 이용해도 될까요?', de:'Kann ich die Toilette benutzen?', cs:'Mohu použít toaletu?'},
+ {cat:'도움 요청', kr:'도와주실 수 있나요?', de:'Könnten Sie mir helfen?', cs:'Mohl byste mi pomoci?'},
+ {cat:'길찾기 & 이동', kr:'화장실 어디 있어요?', de:'Wo sind die Toiletten?', cs:'Kde jsou toalety?'},
+ {cat:'쇼핑', kr:'이건 크네요.', de:'Das ist groß.', cs:'To je velké.'},
+ {cat:'카페 & 식당', kr:'커피 두 잔 부탁해요.', de:'Zweimal Kaffee, bitte.', cs:'Dvě kávy, prosím.'},
+ {cat:'기본 표현', kr:'저는 시간이 없어요.', de:'Ich habe keine Zeit.', cs:'Nemám čas.'},
+ {cat:'쇼핑', kr:'이건 크지 않네요.', de:'Das ist nicht groß.', cs:'To není velké.'},
+ {cat:'기본 표현', kr:'나 그거 하는 거 좋아해요.', de:'Ich mache das gerne.', cs:'Dělám to rád(a).'},
+ {cat:'쇼핑', kr:'여기 이거요.', de:'Das da.', cs:'Tohle.'},
+ {cat:'기본 표현', kr:'뭐라고 하셨죠?', de:'Wie bitte?', cs:'Prosím?'},
+ {cat:'인사 & 자기소개', kr:'저는 독일어 못해요.', de:'Ich spreche kein Deutsch.', cs:'Německy neumím.'},
+ {cat:'인사 & 자기소개', kr:'저 여기 처음이에요.', de:'Ich bin hier neu.', cs:'Jsem tu nový / nová.'},
+ {cat:'인사 & 자기소개', kr:'미안해요. / 유감이네요.', de:'Tut mir leid.', cs:'Omlouvám se.'},
+ {cat:'기본 표현', kr:'이건 제 거예요.', de:'Das gehört mir.', cs:'To je moje.'},
+ {cat:'도움 요청', kr:'사진 찍어 주실 수 있나요?', de:'Können Sie bitte ein Foto machen?', cs:'Mohl byste udělat fotku?'},
+ {cat:'길찾기 & 이동', kr:'좀 지나가도 될까요?', de:'Darf ich mal vorbei, bitte?', cs:'Mohu projít, prosím?'},
+ {cat:'길찾기 & 이동', kr:'줄 서 계신 건가요?', de:'Stehen Sie hier an?', cs:'Stojíte tu ve frontě?'},
+ {cat:'길찾기 & 이동', kr:'~로 어떻게 가나요?', de:'Wie komme ich zu...?', cs:'Jak se dostanu do...?'},
+ {cat:'길찾기 & 이동', kr:'~이 어디 있나요?', de:'Wo finde ich...?', cs:'Kde najdu...?'},
+ {cat:'길찾기 & 이동', kr:'여기 ~이 있나요?', de:'Gibt es hier...?', cs:'Je tady...?'},
+ {cat:'카페 & 식당', kr:'아이가 먹을 만한 메뉴가 있나요?', de:'Haben Sie ein Menü für Kinder?', cs:'Máte dětské menu?'},
+ {cat:'카페 & 식당', kr:'탄산 없는 물 주세요.', de:'Stilles Wasser.', cs:'Neperlivá voda.'},
+ {cat:'카페 & 식당', kr:'크림 빼 주세요.', de:'Ohne Sahne.', cs:'Bez šlehačky.'},
+ {cat:'카페 & 식당', kr:'설탕 빼 주세요.', de:'Ohne Zucker.', cs:'Bez cukru.'},
+ {cat:'카페 & 식당', kr:'뭔가 추천해 주실 수 있나요?', de:'Könnten Sie mir etwas empfehlen?', cs:'Mohl byste mi něco doporučit?'},
+ {cat:'카페 & 식당', kr:'포크 (칼/숟가락) 좀 더 갖다 주시겠어요?', de:'Können Sie mir eine Gabel (ein Messer/einen Löffel) bringen?', cs:'Mohl byste mi přinést vidličku (nůž / lžíci)?'},
+ {cat:'카페 & 식당', kr:'맛있네요.', de:'Schmeckt gut.', cs:'Chutná to dobře.'},
+ {cat:'카페 & 식당', kr:'그거 정말 맛있었어요.', de:'Das war super lecker.', cs:'Bylo to skvělé.'},
+ {cat:'카페 & 식당', kr:'남은 음식 좀 싸 주시겠어요?', de:'Könnten Sie den Rest einpacken, bitte?', cs:'Mohl byste mi to zabalit s sebou?'},
+ {cat:'기본 표현', kr:'얼마나 걸려요?', de:'Wie lange dauert es?', cs:'Jak dlouho to trvá?'},
+ {cat:'기본 표현', kr:'나중에 다시 올게요.', de:'Ich komme später wieder.', cs:'Vrátím se později.'},
+ {cat:'쇼핑', kr:'그거 마음에 드네요.', de:'Das gefällt mir.', cs:'To se mi líbí.'},
+ {cat:'쇼핑', kr:'입어 봐도 될까요?', de:'Kann ich das anprobieren?', cs:'Můžu si to vyzkoušet?'},
+ {cat:'쇼핑', kr:'선물용으로 포장해 주실 수 있나요?', de:'Können Sie das als Geschenk verpacken?', cs:'Můžete to zabalit jako dárek?'},
+ {cat:'쇼핑', kr:'이거 얼마예요?', de:'Wie viel kostet das?', cs:'Kolik to stojí?'},
+ {cat:'쇼핑', kr:'면세로 해 주세요.', de:'Bitte machen Sie das Tax Free.', cs:'Můžete to udělat bez DPH (tax free)?'},
+ {cat:'계산 & 결제', kr:'계산할게요.', de:'Zahlen, bitte.', cs:'Zaplatím, prosím.'},
+ {cat:'계산 & 결제', kr:'같이 계산할게요.', de:'Zusammen, bitte.', cs:'Dohromady, prosím.'},
+ {cat:'계산 & 결제', kr:'따로 계산할게요.', de:'Getrennt, bitte.', cs:'Zvlášť, prosím.'},
+ {cat:'계산 & 결제', kr:'카드로 계산할게요.', de:'Mit Karte, bitte.', cs:'Kartou, prosím.'},
+ {cat:'계산 & 결제', kr:'현금으로 계산할게요.', de:'Bar, bitte.', cs:'Hotově, prosím.'},
+ {cat:'계산 & 결제', kr:'잔돈은 괜찮아요.', de:'Stimmt so.', cs:'To je v pořádku (nevracejte).'},
+ {cat:'생활 편의', kr:'여기서 제 전화기 충전할 수 있나요?', de:'Kann ich hier mein Handy aufladen?', cs:'Můžu si tady nabít telefon?'},
+ {cat:'생활 편의', kr:'여기 와이파이 있나요?', de:'Gibt es hier Wi-Fi?', cs:'Je tu Wi-Fi?'},
+ {cat:'카페 & 식당', kr:'여기서 먹을게요.', de:'Zum Hieressen.', cs:'Tady.'},
+ {cat:'카페 & 식당', kr:'포장할게요.', de:'Zum Mitnehmen.', cs:'S sebou.'},
+ {cat:'카페 & 식당', kr:'다른 건 더 없으신가요?', de:'Sonst noch etwas?', cs:'Ještě něco?'},
+ {cat:'카페 & 식당', kr:'입맛에 맞나요?', de:'Schmeckt gut?', cs:'Chutná vám to?'},
+ {cat:'기본 표현', kr:'3시간 걸려요.', de:'Es dauert 3 Stunden.', cs:'Trvá to 3 hodiny.'},
+ {cat:'계산 & 결제', kr:'그건 10유로입니다.', de:'Das kostet 10 Euro.', cs:'Stojí to 10 eur.'},
+];
+const PHRASE_CATEGORY_ORDER = ['인사 & 자기소개','기본 표현','길찾기 & 이동','카페 & 식당','쇼핑','계산 & 결제','도움 요청','생활 편의'];
+
+
+/* =====================================================================
    STATE
 ===================================================================== */
 const STATE_KEY = 'euro2026_state_v3';
@@ -194,6 +277,8 @@ if(state.meta.webhookUrl===undefined) state.meta.webhookUrl='';
 if(state.meta.lastSync===undefined) state.meta.lastSync=null;
 if(state.meta.passportUrl===undefined) state.meta.passportUrl='';
 if(state.meta.insuranceUrl===undefined) state.meta.insuranceUrl='';
+if(state.meta.phraseLang===undefined) state.meta.phraseLang='de';
+PHRASES.forEach((p,i)=>{ p.id = i; });
 if(!state.meta.webhookUrl && DEFAULT_WEBHOOK_URL) state.meta.webhookUrl = DEFAULT_WEBHOOK_URL;
 
 state.days.forEach(d=>{
@@ -231,7 +316,7 @@ let activeDayId = null;
 /* =====================================================================
    NAV
 ===================================================================== */
-const titles = {dashboard:'종합 대시보드', timeline:'인터랙티브 타임라인', checklist:'준비물 체크리스트', memo:'메모 & 쇼핑 가이드'};
+const titles = {dashboard:'종합 대시보드', timeline:'인터랙티브 타임라인', checklist:'준비물 체크리스트', phrasebook:'여행 회화', memo:'메모 & 쇼핑 가이드'};
 function switchTab(name){
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
   document.getElementById('tab-'+name).classList.add('active');
@@ -239,6 +324,7 @@ function switchTab(name){
   document.getElementById('topTitle').textContent = titles[name];
   if(name==='timeline') renderTimeline();
   if(name==='dashboard') renderDashboard();
+  if(name==='phrasebook') renderPhrasebook();
 }
 
 /* =====================================================================
@@ -734,6 +820,64 @@ function addCategory(){
   const val = input.value.trim(); if(!val) return;
   state.checklist.push({id:uid('cat'), cat:val, items:[]});
   input.value=''; persist(); renderChecklist();
+}
+
+/* =====================================================================
+   여행 회화 (독일어 / 체코어)
+===================================================================== */
+function changePhraseLang(lang){
+  state.meta.phraseLang = lang;
+  persist();
+  renderPhrasebook();
+}
+function renderPhrasebook(){
+  const wrap = document.getElementById('phraseBody');
+  const lang = state.meta.phraseLang || 'de';
+  const grouped = {};
+  PHRASES.forEach(p=>{ if(!grouped[p.cat]) grouped[p.cat]=[]; grouped[p.cat].push(p); });
+
+  let html = `<div class="lang-toggle">
+    <button class="lang-btn ${lang==='de'?'active':''}" onclick="changePhraseLang('de')">🇩🇪 독일어</button>
+    <button class="lang-btn ${lang==='cs'?'active':''}" onclick="changePhraseLang('cs')">🇨🇿 체코어</button>
+  </div>`;
+
+  PHRASE_CATEGORY_ORDER.forEach(cat=>{
+    const items = grouped[cat];
+    if(!items || !items.length) return;
+    html += `<div class="card">
+      <div class="section-label">${esc(cat)}</div>
+      ${items.map(p=>`<div class="phrase-row" onclick="openPhraseModal(${p.id})">
+        <div>
+          <div class="phrase-kr">${esc(p.kr)}</div>
+          <div class="phrase-foreign">${esc(lang==='de'?p.de:p.cs)}</div>
+        </div>
+        <span class="phrase-arrow">🔊</span>
+      </div>`).join('')}
+    </div>`;
+  });
+  wrap.innerHTML = html;
+}
+function openPhraseModal(id){
+  const p = PHRASES.find(x=>x.id===id);
+  const lang = state.meta.phraseLang || 'de';
+  const text = lang==='de' ? p.de : p.cs;
+  const langLabel = lang==='de' ? '독일어' : '체코어';
+  const langCode = lang==='de' ? 'de-DE' : 'cs-CZ';
+  const html = `
+    <div class="font-mono" style="font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--gold-deep); font-weight:700; margin-bottom:8px;">${esc(langLabel)}</div>
+    <div class="font-display" style="font-size:23px; font-weight:700; line-height:1.4; margin-bottom:12px;">${esc(text)}</div>
+    <div style="font-size:14px; color:var(--ink-2); margin-bottom:20px;">${esc(p.kr)}</div>
+    <button class="btn-primary" style="width:100%; font-size:15px; padding:13px;" onclick="speakPhrase('${text.replace(/'/g,"\\'")}','${langCode}')">🔊 발음 듣기</button>
+    <button class="btn-cancel" onclick="closeFormModal()">닫기</button>`;
+  openFormModal(html);
+}
+function speakPhrase(text, langCode){
+  if(!('speechSynthesis' in window)){ alert('이 기기/브라우저는 음성 재생을 지원하지 않습니다.'); return; }
+  window.speechSynthesis.cancel();
+  const utter = new SpeechSynthesisUtterance(text);
+  utter.lang = langCode;
+  utter.rate = 0.88;
+  window.speechSynthesis.speak(utter);
 }
 
 /* =====================================================================
