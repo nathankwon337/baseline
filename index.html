@@ -114,6 +114,7 @@ body{background:var(--paper); color:var(--text); font-family:'Inter',sans-serif;
 .jump-card{display:flex; align-items:center; gap:10px; padding:12px 14px;}
 .jump-label{font-size:12px; color:var(--muted); white-space:nowrap; flex-shrink:0; font-weight:600;}
 .jump-select{flex:1; border:1px solid var(--line); border-radius:8px; padding:8px 10px; font-size:13px; background:var(--paper-2); color:var(--ink-2);}
+.qty-btn{width:32px; height:32px; border-radius:9px; border:1px solid var(--line); background:var(--paper-2); font-size:17px; font-weight:700; color:var(--ink-2); cursor:pointer; flex-shrink:0;}
 .chk-box{width:21px;height:21px; border-radius:6px; border:2px solid var(--line); flex-shrink:0; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:.15s;}
 .chk-box.on{background:var(--moss); border-color:var(--moss);}
 .chk-box svg{width:13px;height:13px; stroke:white; opacity:0;}
@@ -259,6 +260,11 @@ textarea#memoInput{width:100%; border:1px solid var(--line); border-radius:10px;
   <div id="phraseBody"></div>
 </div>
 
+<!-- ================= 식당 도우미 ================= -->
+<div class="tab" id="tab-restaurant">
+  <div id="restaurantBody"></div>
+</div>
+
 <!-- ================= MEMO & SHOPPING ================= -->
 <div class="tab" id="tab-memo">
   <div class="card">
@@ -286,6 +292,9 @@ textarea#memoInput{width:100%; border:1px solid var(--line); border-radius:10px;
   <button class="navbtn" data-tab="phrasebook" onclick="switchTab('phrasebook')">
     <svg fill="none" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.86 9.86 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>여행회화
   </button>
+  <button class="navbtn" data-tab="restaurant" onclick="switchTab('restaurant')">
+    <svg fill="none" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 3v6m-4-6v6m8-6v6M7 9h8m-8 0v12m8-12v12M4 21h16"/></svg>식당
+  </button>
   <button class="navbtn" data-tab="memo" onclick="switchTab('memo')">
     <svg fill="none" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.4-9.4a2 2 0 112.8 2.8L11 17l-4 1 1-4 9.6-9.4z"/></svg>메모/쇼핑
   </button>
@@ -305,6 +314,6 @@ textarea#memoInput{width:100%; border:1px solid var(--line); border-radius:10px;
   <div class="modalSheet"><div id="formModalContent"></div></div>
 </div>
 
-<script src="app.js?v=7"></script>
+<script src="app.js?v=8"></script>
 </body>
 </html>

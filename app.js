@@ -246,6 +246,72 @@ const PHRASES = [
 ];
 const PHRASE_CATEGORY_ORDER = ['인사 & 자기소개','기본 표현','길찾기 & 이동','카페 & 식당','쇼핑','계산 & 결제','도움 요청','생활 편의'];
 
+/* =====================================================================
+   식당 도우미 — 착석 → 주문 → 식사 → 계산 전과정 지원
+   (체코_음식_주문_가이드.pdf 기준. 독일/스위스/리히텐슈타인/오스트리아는 추후 추가 예정)
+===================================================================== */
+const RESTAURANT_REGIONS = [
+  {id:'cz', flag:'🇨🇿', label:'체코 (프라하 · 체스키크룸로프)', langCode:'cs-CZ'},
+];
+
+const RESTAURANT_INTRO = {
+  cz: [
+    {kr:'안녕하세요. 저희는 3명입니다. 자리가 있나요?', local:'Dobrý den. Jsme tři. Máte volný stůl?'},
+    {kr:'3명 자리를 예약한 Kwon 이라고 합니다. 안내를 부탁합니다.', local:'Dobrý den, mám rezervaci na jméno Kwon pro tři osoby.'},
+    {kr:'메뉴판 좀 부탁드립니다.', local:'Mohl byste mi přinést jídelní lístek, prosím?'},
+    {kr:'혹시 추천해 주실 메뉴가 있나요?', local:'Mohl byste mi něco doporučit?'},
+    {kr:'조금 이따가 다시 올게요, 아직 고르는 중이에요.', local:'Ještě chvíli budeme vybírat, děkujeme.'},
+    {kr:'주문할게요.', local:'Můžeme si objednat, prosím?'},
+    {kr:'아이가 먹을 만한 메뉴가 있나요?', local:'Máte dětské menu?'},
+    {kr:'화장실 어디 있어요?', local:'Kde jsou toalety?'},
+    {kr:'여기 와이파이 있나요?', local:'Je tu Wi-Fi?'},
+  ],
+};
+
+// 체코_음식_주문_가이드.pdf '꼭 먹어야 할 체코 음식 10' 중 1~8번(식사류)
+const RESTAURANT_FOOD = {
+  cz: [
+    {id:'koleno', emoji:'🍖', kr:'꼴레뇨 (돼지 무릎 구이)', en:'PORK KNUCKLE', local:'Vepřové koleno', desc:'통째로 오래 구워 겉바속촉. 양이 많아 2인 기준 1개면 충분.', price:'약 400~500 CZK', recommend:"Pork's Vodičkova (프라하)"},
+    {id:'svickova', emoji:'🥘', kr:'스비치코바 (크림소스 소고기)', en:'BEEF SIRLOIN', local:'Svíčková na smetaně', desc:'소고기 안심을 크림소스와 함께, 빵 경단(크네들리키) 곁들임.', price:'약 250~350 CZK', recommend:'체스키 크룸로프 강가 식당가'},
+    {id:'gulas', emoji:'🍲', kr:'굴라시 (체코식 고기 스튜)', en:'GOULASH', local:'Guláš', desc:'파프리카 향의 진한 고기 스튜, 빵/경단 찍어먹기 좋음.', price:'약 180~260 CZK', recommend:''},
+    {id:'chlebicky', emoji:'🥪', kr:'흘레비치키 (오픈 샌드위치)', en:'OPEN SANDWICH', local:'Chlebíčky', desc:'한입 크기 오픈 샌드위치, 여러 종류를 조금씩 맛보기 좋음.', price:'개당 약 30~60 CZK', recommend:''},
+    {id:'bramborak', emoji:'🥔', kr:'브람보라크 (감자전)', en:'POTATO PANCAKE', local:'Bramborák', desc:'체코식 감자전, 마늘·향신료 향이 진함.', price:'약 100~150 CZK (2개)', recommend:"Pork's Vodičkova"},
+    {id:'knedliky', emoji:'🍞', kr:'크네들리키 (체코식 빵 경단)', en:'BREAD DUMPLING', local:'Knedlíky', desc:'찐 빵 경단, 소스를 흠뻑 머금는 사이드 메뉴.', price:'대부분 메인에 포함', recommend:''},
+    {id:'rizek', emoji:'🍗', kr:'리젝 (체코식 돈까스)', en:'SCHNITZEL', local:'Vepřový řízek', desc:'얇게 편 고기에 빵가루 튀김, 오스트리아 슈니첼과 비슷.', price:'약 250~320 CZK', recommend:''},
+    {id:'trdelnik', emoji:'🍩', kr:'트르들니크 (굴뚝 빵)', en:'CHIMNEY CAKE', local:'Trdelník', desc:'숯불에 구운 길거리 디저트, 아이스크림 채운 콘 형태 인기.', price:'약 100~180 CZK', recommend:''},
+  ],
+};
+
+// 9~10번(음료류) — 각각 2가지씩으로 세분화
+const RESTAURANT_DRINK = {
+  cz: [
+    {id:'pilsner', emoji:'🍺', kr:'필스너 우르켈', en:'Pilsner Urquell', local:'Plzeňský Prazdroj', desc:'필스너 라거의 원조.', price:'약 45~70 CZK/잔', recommend:''},
+    {id:'localbeer', emoji:'🍻', kr:'체코 로컬 맥주', en:'Local Czech beer', local:'Místní pivo', desc:'체스키 크룸로프의 에겐베르크 등 지역 맥주.', price:'약 45~70 CZK/잔', recommend:'Eggenberg (체스키크룸로프)'},
+    {id:'becherovka', emoji:'🥃', kr:'베헤롭카', en:'Becherovka', local:'Becherovka', desc:'20여 가지 허브로 만든 체코 대표 리큐르, 쌉싸름함.', price:'', recommend:''},
+    {id:'medovina', emoji:'🍯', kr:'메도비나 (벌꿀주)', en:'Medovina (mead)', local:'Medovina', desc:'꿀을 발효시켜 만든 달콤한 술.', price:'', recommend:''},
+  ],
+};
+
+const RESTAURANT_ETC = {
+  cz: [
+    {cat:'물 / 추가 요청', kr:'탄산 없는 물 주세요.', local:'Neperlivá voda, prosím.'},
+    {cat:'물 / 추가 요청', kr:'탄산수 주세요.', local:'Perlivá voda, prosím.'},
+    {cat:'물 / 추가 요청', kr:'포크(칼/숟가락) 좀 더 갖다 주시겠어요?', local:'Mohl byste mi přinést vidličku (nůž / lžíci)?'},
+    {cat:'맛 표현', kr:'맛있네요.', local:'Chutná to dobře.'},
+    {cat:'맛 표현', kr:'정말 맛있었어요.', local:'Bylo to skvělé.'},
+    {cat:'포장', kr:'남은 음식 좀 싸 주시겠어요?', local:'Mohl byste mi to zabalit s sebou?'},
+    {cat:'포장', kr:'여기서 먹을게요.', local:'Tady.'},
+    {cat:'포장', kr:'포장할게요.', local:'S sebou.'},
+    {cat:'계산', kr:'계산할게요.', local:'Zaplatím, prosím.'},
+    {cat:'계산', kr:'같이 계산할게요.', local:'Dohromady, prosím.'},
+    {cat:'계산', kr:'따로 계산할게요.', local:'Zvlášť, prosím.'},
+    {cat:'계산', kr:'카드로 계산할게요.', local:'Kartou, prosím.'},
+    {cat:'계산', kr:'현금으로 계산할게요.', local:'Hotově, prosím.'},
+    {cat:'계산', kr:'잔돈은 괜찮아요.', local:'To je v pořádku, nevracejte.'},
+    {cat:'계산', kr:'이거 얼마예요?', local:'Kolik to stojí?'},
+  ],
+};
+
 
 /* =====================================================================
    STATE
@@ -264,6 +330,7 @@ function defaultState(){
     shopping: SEED_SHOPPING.map(g=>({ id:uid('shop'), country:g.country, city:g.city, loc:g.loc||'', items:g.items.map(label=>({ id:uid('sitem'), label, note:'', checked:false })) })),
     checklist: SEED_CHECKLIST.map(c=>({ id:uid('cat'), cat:c.cat, items:c.items.map(label=>({ id:uid('item'), label, done:false, note:'' })) })),
     memos: [],
+    restaurantOrder: { region:'cz', food:[], drink:[] },
     meta: { webhookUrl:'', lastSync:'', passportUrl:'', insuranceUrl:'' }
   };
 }
@@ -272,6 +339,10 @@ let state = loadJSON(STATE_KEY, null) || defaultState();
 /* ---- 마이그레이션: 기존에 저장된 데이터는 절대 지우지 않고, 없는 필드만 채워 넣습니다 ---- */
 if(!state.shopping) state.shopping = defaultState().shopping;
 if(!state.memos) state.memos = [];
+if(!state.restaurantOrder) state.restaurantOrder = { region:'cz', food:[], drink:[] };
+if(!state.restaurantOrder.food) state.restaurantOrder.food = [];
+if(!state.restaurantOrder.drink) state.restaurantOrder.drink = [];
+if(!state.restaurantOrder.region) state.restaurantOrder.region = 'cz';
 if(!state.meta) state.meta = {};
 if(state.meta.webhookUrl===undefined) state.meta.webhookUrl='';
 if(state.meta.lastSync===undefined) state.meta.lastSync=null;
@@ -316,7 +387,7 @@ let activeDayId = null;
 /* =====================================================================
    NAV
 ===================================================================== */
-const titles = {dashboard:'종합 대시보드', timeline:'인터랙티브 타임라인', checklist:'준비물 체크리스트', phrasebook:'여행 회화', memo:'메모 & 쇼핑 가이드'};
+const titles = {dashboard:'종합 대시보드', timeline:'인터랙티브 타임라인', checklist:'준비물 체크리스트', phrasebook:'여행 회화', restaurant:'식당 도우미', memo:'메모 & 쇼핑 가이드'};
 function switchTab(name){
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
   document.getElementById('tab-'+name).classList.add('active');
@@ -325,6 +396,7 @@ function switchTab(name){
   if(name==='timeline') renderTimeline();
   if(name==='dashboard') renderDashboard();
   if(name==='phrasebook') renderPhrasebook();
+  if(name==='restaurant') renderRestaurant();
 }
 
 /* =====================================================================
@@ -900,6 +972,211 @@ function speakPhrase(text, langCode){
   utter.lang = langCode;
   utter.rate = 0.88;
   window.speechSynthesis.speak(utter);
+}
+
+/* =====================================================================
+   식당 도우미
+===================================================================== */
+function speakLocal(text, langCode){
+  if(!('speechSynthesis' in window)){ alert('이 기기/브라우저는 음성 재생을 지원하지 않습니다.'); return; }
+  window.speechSynthesis.cancel();
+  const utter = new SpeechSynthesisUtterance(text);
+  utter.lang = langCode;
+  utter.rate = 0.88;
+  window.speechSynthesis.speak(utter);
+}
+function openLocalPhraseModal(kr, local, langCode){
+  const html = `
+    <div class="font-mono" style="font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--gold-deep); font-weight:700; margin-bottom:8px;">현지어</div>
+    <div class="font-display" style="font-size:22px; font-weight:700; line-height:1.4; margin-bottom:12px;">${esc(local)}</div>
+    <div style="font-size:14px; color:var(--ink-2); margin-bottom:20px;">${esc(kr)}</div>
+    <button class="btn-primary" style="width:100%; font-size:15px; padding:13px;" onclick="speakLocal('${local.replace(/'/g,"\\'")}','${langCode}')">🔊 발음 듣기</button>
+    <button class="btn-cancel" onclick="closeFormModal()">닫기</button>`;
+  openFormModal(html);
+}
+
+function currentRestaurantRegion(){
+  return RESTAURANT_REGIONS.find(r=>r.id===state.restaurantOrder.region) || RESTAURANT_REGIONS[0];
+}
+function changeRestaurantRegion(id){
+  state.restaurantOrder.region = id;
+  persist();
+  renderRestaurant();
+}
+
+function renderRestaurant(){
+  const region = currentRestaurantRegion();
+  const wrap = document.getElementById('restaurantBody');
+  const intro = RESTAURANT_INTRO[region.id] || [];
+  const etc = RESTAURANT_ETC[region.id] || [];
+
+  let html = `<div class="card jump-card">
+    <span class="jump-label">📍 바로가기</span>
+    <select class="jump-select" onchange="if(this.value) jumpToSection(this.value); this.value='';">
+      <option value="">섹션 선택…</option>
+      <option value="rest-intro">A. 인트로 대화</option>
+      <option value="rest-food">B. 음식 주문</option>
+      <option value="rest-drink">B. 음료 주문</option>
+      <option value="rest-etc">C. 기타 실전 회화</option>
+    </select>
+  </div>`;
+
+  if(RESTAURANT_REGIONS.length > 1){
+    html += `<div class="card">
+      <div class="section-label">지역 선택</div>
+      <select class="jump-select" style="background:var(--white);" onchange="changeRestaurantRegion(this.value)">
+        ${RESTAURANT_REGIONS.map(r=>`<option value="${r.id}" ${r.id===region.id?'selected':''}>${r.flag} ${esc(r.label)}</option>`).join('')}
+      </select>
+    </div>`;
+  } else {
+    html += `<div class="card" style="padding:12px 14px; text-align:center; font-size:13px; font-weight:700; color:var(--ink-2);">${region.flag} ${esc(region.label)}</div>`;
+  }
+
+  html += `<div class="card" id="rest-intro">
+    <div class="section-label">A. 인트로 대화 (착석)</div>
+    ${intro.map(p=>`<div class="phrase-row" onclick="openLocalPhraseModal('${p.kr.replace(/'/g,"\\'")}','${p.local.replace(/'/g,"\\'")}','${region.langCode}')">
+      <div>
+        <div class="phrase-kr">${esc(p.kr)}</div>
+        <div class="phrase-foreign">${esc(p.local)}</div>
+      </div>
+      <span class="phrase-arrow">🔊</span>
+    </div>`).join('')}
+  </div>`;
+
+  html += renderOrderBuilder(region, 'food', '🍽️ B. 음식 주문');
+  html += renderOrderBuilder(region, 'drink', '🥤 B. 음료 주문');
+
+  html += `<div class="card" id="rest-etc">
+    <div class="section-label">C. 기타 실전 회화</div>
+    ${groupEtcByCategory(etc)}
+  </div>`;
+
+  wrap.innerHTML = html;
+  updateOrderPreview('food');
+  updateOrderPreview('drink');
+}
+
+function groupEtcByCategory(etc){
+  const grouped = {};
+  const order = [];
+  etc.forEach(p=>{ if(!grouped[p.cat]){ grouped[p.cat]=[]; order.push(p.cat); } grouped[p.cat].push(p); });
+  const region = currentRestaurantRegion();
+  return order.map(cat=>`
+    <div style="font-size:11.5px; font-weight:700; color:var(--moss); margin:12px 0 4px;">${esc(cat)}</div>
+    ${grouped[cat].map(p=>`<div class="phrase-row" onclick="openLocalPhraseModal('${p.kr.replace(/'/g,"\\'")}','${p.local.replace(/'/g,"\\'")}','${region.langCode}')">
+      <div>
+        <div class="phrase-kr">${esc(p.kr)}</div>
+        <div class="phrase-foreign">${esc(p.local)}</div>
+      </div>
+      <span class="phrase-arrow">🔊</span>
+    </div>`).join('')}
+  `).join('');
+}
+
+function renderOrderBuilder(region, kind, title){
+  const menu = (kind==='food' ? RESTAURANT_FOOD : RESTAURANT_DRINK)[region.id] || [];
+  const orderList = state.restaurantOrder[kind];
+  const sectionId = 'rest-'+kind;
+  return `<div class="card" id="${sectionId}">
+    <div class="section-label">${title}</div>
+    <select id="${kind}Select" class="jump-select" style="background:var(--white); margin-bottom:10px;" onchange="updateOrderPreview('${kind}')">
+      ${menu.map(m=>`<option value="${m.id}">${esc(m.kr)}</option>`).join('')}
+    </select>
+    <div id="${kind}Preview"></div>
+    <div style="display:flex; align-items:center; gap:10px; margin:12px 0;">
+      <span style="font-size:12.5px; color:var(--muted); font-weight:600;">수량</span>
+      <button class="qty-btn" onclick="stepQty('${kind}',-1)">−</button>
+      <span id="${kind}QtyVal" class="font-mono" style="font-size:16px; font-weight:700; min-width:24px; text-align:center;">1</span>
+      <button class="qty-btn" onclick="stepQty('${kind}',1)">＋</button>
+      <button class="btn-primary" style="flex:1; margin-left:8px;" onclick="addToOrder('${kind}')">주문 목록에 추가</button>
+    </div>
+    <div id="${kind}OrderList">${renderOrderListHtml(kind, orderList, menu)}</div>
+    ${orderList.length ? `
+    <button class="btn-primary" style="width:100%; margin-top:10px; background:var(--moss);" onclick="buildOrderPhrase('${kind}')">📋 이 주문 문구 만들기</button>
+    <div id="${kind}PhraseResult"></div>
+    <button class="btn-ghost" style="width:100%; margin-top:8px;" onclick="clearOrder('${kind}')">주문 목록 초기화</button>
+    ` : ''}
+  </div>`;
+}
+function renderOrderListHtml(kind, orderList, menu){
+  if(!orderList.length) return `<div style="font-size:12px; color:var(--muted); padding:6px 2px;">아직 담은 항목이 없습니다.</div>`;
+  return orderList.map((o,i)=>{
+    const item = menu.find(m=>m.id===o.itemId);
+    if(!item) return '';
+    return `<div class="phrase-row" style="cursor:default;">
+      <div><div class="phrase-kr">${item.emoji} ${esc(item.kr)}</div><div class="phrase-foreign">${esc(item.local)}</div></div>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <span class="font-mono" style="font-size:13px; font-weight:700;">×${o.qty}</span>
+        <span class="icon-btn danger" onclick="removeOrderItem('${kind}',${i})">✕</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+let qtyState = { food:1, drink:1 };
+function stepQty(kind, delta){
+  qtyState[kind] = Math.max(1, (qtyState[kind]||1) + delta);
+  document.getElementById(kind+'QtyVal').textContent = qtyState[kind];
+}
+function updateOrderPreview(kind){
+  const region = currentRestaurantRegion();
+  const menu = (kind==='food' ? RESTAURANT_FOOD : RESTAURANT_DRINK)[region.id] || [];
+  const select = document.getElementById(kind+'Select');
+  if(!select) return;
+  const item = menu.find(m=>m.id===select.value) || menu[0];
+  const preview = document.getElementById(kind+'Preview');
+  if(!item || !preview) return;
+  preview.innerHTML = `<div style="display:flex; gap:12px; align-items:flex-start; background:var(--paper-2); border-radius:10px; padding:12px;">
+    <div style="font-size:32px; line-height:1;">${item.emoji}</div>
+    <div style="flex:1;">
+      <div style="font-weight:700; font-size:14px;">${esc(item.kr)}</div>
+      <div style="font-size:12px; color:var(--gold-deep); font-weight:600; margin-top:1px;">${esc(item.en)} · <span class="font-mono">${esc(item.local)}</span></div>
+      <div style="font-size:12px; color:var(--ink-2); margin-top:5px; line-height:1.5;">${esc(item.desc)}</div>
+      <div style="font-size:11.5px; color:var(--muted); margin-top:5px;">${item.price?('가격대 '+esc(item.price)):''}${item.recommend?(' · 추천 '+esc(item.recommend)):''}</div>
+    </div>
+  </div>`;
+}
+function addToOrder(kind){
+  const region = currentRestaurantRegion();
+  const menu = (kind==='food' ? RESTAURANT_FOOD : RESTAURANT_DRINK)[region.id] || [];
+  const select = document.getElementById(kind+'Select');
+  const itemId = select.value;
+  const qty = qtyState[kind]||1;
+  const list = state.restaurantOrder[kind];
+  const existing = list.find(o=>o.itemId===itemId);
+  if(existing) existing.qty += qty; else list.push({itemId, qty});
+  qtyState[kind] = 1;
+  persist();
+  renderRestaurant();
+}
+function removeOrderItem(kind, idx){
+  state.restaurantOrder[kind].splice(idx,1);
+  persist();
+  renderRestaurant();
+}
+function clearOrder(kind){
+  if(!confirm('주문 목록을 초기화할까요?')) return;
+  state.restaurantOrder[kind] = [];
+  persist();
+  renderRestaurant();
+}
+function buildOrderPhrase(kind){
+  const region = currentRestaurantRegion();
+  const menu = (kind==='food' ? RESTAURANT_FOOD : RESTAURANT_DRINK)[region.id] || [];
+  const list = state.restaurantOrder[kind];
+  if(!list.length) return;
+  const parts = list.map(o=>{
+    const item = menu.find(m=>m.id===o.itemId);
+    return `${o.qty} ${item.local}`;
+  });
+  const phrase = `Dal bych si, prosím: ${parts.join(', ')}.`;
+  const resultEl = document.getElementById(kind+'PhraseResult');
+  resultEl.innerHTML = `
+    <div style="background:var(--paper-2); border-radius:10px; padding:12px; margin-top:10px;">
+      <div class="font-display" style="font-size:16px; font-weight:700; line-height:1.5; margin-bottom:8px;">${esc(phrase)}</div>
+      <div style="font-size:11px; color:var(--muted); margin-bottom:10px;">※ 수량에 따른 어미 변화는 반영되지 않았지만, 현지에서 화면을 보여주며 말하면 충분히 통합니다.</div>
+      <button class="btn-primary" style="width:100%;" onclick="speakLocal('${phrase.replace(/'/g,"\\'")}','${region.langCode}')">🔊 이 문구 발음 듣기</button>
+    </div>`;
 }
 
 /* =====================================================================
