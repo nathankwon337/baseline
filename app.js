@@ -574,6 +574,14 @@ function renderPool(){
 }
 
 function openMap(query){ window.open('https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(query), '_blank'); }
+function jumpToSection(id){
+  const el = document.getElementById(id);
+  if(!el) return;
+  const topbar = document.querySelector('.topbar');
+  const offset = (topbar ? topbar.offsetHeight : 60) + 12;
+  const y = el.getBoundingClientRect().top + window.pageYOffset - offset;
+  window.scrollTo({top: Math.max(0,y), behavior:'smooth'});
+}
 function openMenuPdf(filename){ window.open('menus/'+encodeURIComponent(filename), '_blank'); }
 
 /* --- Block create/edit modal --- */
@@ -730,10 +738,17 @@ function addPoolToTimeline(poolId){
 function renderChecklist(){
   const body = document.getElementById('checklistBody');
   let totalItems=0, totalDone=0, html='';
+  html += `<div class="card jump-card">
+    <span class="jump-label">📍 바로가기</span>
+    <select class="jump-select" onchange="if(this.value) jumpToSection(this.value); this.value='';">
+      <option value="">카테고리 선택…</option>
+      ${state.checklist.map(cat=>`<option value="cat-${cat.id}">${esc(cat.cat)}</option>`).join('')}
+    </select>
+  </div>`;
   state.checklist.forEach(cat=>{
     const done = cat.items.filter(i=>i.done).length;
     totalItems += cat.items.length; totalDone += done;
-    html += `<div class="card chk-cat">
+    html += `<div class="card chk-cat" id="cat-${cat.id}">
       <div class="chk-cat-head">
         <h3>${esc(cat.cat)}</h3>
         <div style="display:flex; align-items:center; gap:10px;">
@@ -836,15 +851,22 @@ function renderPhrasebook(){
   const grouped = {};
   PHRASES.forEach(p=>{ if(!grouped[p.cat]) grouped[p.cat]=[]; grouped[p.cat].push(p); });
 
-  let html = `<div class="lang-toggle">
+  let html = `<div class="card jump-card">
+    <span class="jump-label">📍 바로가기</span>
+    <select class="jump-select" onchange="if(this.value) jumpToSection(this.value); this.value='';">
+      <option value="">상황 선택…</option>
+      ${PHRASE_CATEGORY_ORDER.map((cat,i)=>`<option value="phrase-cat-${i}">${esc(cat)}</option>`).join('')}
+    </select>
+  </div>
+  <div class="lang-toggle">
     <button class="lang-btn ${lang==='de'?'active':''}" onclick="changePhraseLang('de')">🇩🇪 독일어</button>
     <button class="lang-btn ${lang==='cs'?'active':''}" onclick="changePhraseLang('cs')">🇨🇿 체코어</button>
   </div>`;
 
-  PHRASE_CATEGORY_ORDER.forEach(cat=>{
+  PHRASE_CATEGORY_ORDER.forEach((cat,ci)=>{
     const items = grouped[cat];
     if(!items || !items.length) return;
-    html += `<div class="card">
+    html += `<div class="card" id="phrase-cat-${ci}">
       <div class="section-label">${esc(cat)}</div>
       ${items.map(p=>`<div class="phrase-row" onclick="openPhraseModal(${p.id})">
         <div>
@@ -897,9 +919,15 @@ function renderMemo(){
 }
 function renderShopping(){
   const body = document.getElementById('shoppingBody');
-  let html = '';
+  let html = `<div class="card jump-card">
+    <span class="jump-label">📍 바로가기</span>
+    <select class="jump-select" onchange="if(this.value) jumpToSection(this.value); this.value='';">
+      <option value="">장소 선택…</option>
+      ${state.shopping.map(grp=>`<option value="shop-${grp.id}">${esc(grp.country)} ${esc(grp.city)}</option>`).join('')}
+    </select>
+  </div>`;
   state.shopping.forEach(grp=>{
-    html += `<div class="card" style="margin-bottom:12px;">
+    html += `<div class="card" id="shop-${grp.id}" style="margin-bottom:12px;">
       <div class="shop-city" style="display:flex; justify-content:space-between; align-items:center; margin-top:0;">
         <div><span class="shop-country-tag">${esc(grp.country)}</span>${esc(grp.city)}</div>
         <div style="display:flex; gap:8px;">
