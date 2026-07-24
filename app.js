@@ -3,7 +3,7 @@
    가족 모두 어떤 기기/브라우저로 열어도 별도 입력 없이 동기화 버튼이 바로 동작합니다.
    (비워두면 대시보드 화면에서 각자 URL을 입력해서 저장하는 기존 방식으로 동작)
 ===================================================================== */
-const DEFAULT_WEBHOOK_URL = ''; // 예: 'https://script.google.com/macros/s/AKfycb.../exec'
+const DEFAULT_WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbxkanqaM7kc88Xf4S9awiof_Q9N99JTJrj5-SRdPJxsplfO962AKMpTRa8fScVTXoS5/exec';
 
 // 통화 환산 기준 (1단위당 원화)
 const FX = { EUR: 1700, CZK: 70, CHF: 1800 };
