@@ -40,9 +40,10 @@ body{background:var(--paper); color:var(--text); font-family:'Inter',sans-serif;
 .progress-wrap{background:var(--paper-2); border-radius:999px; height:10px; overflow:hidden;}
 .progress-bar{height:100%; background:linear-gradient(90deg,var(--moss),var(--gold)); border-radius:999px; transition:width .6s ease;}
 
-.routeline-scroll{overflow-x:auto; padding:6px 2px 10px; -webkit-overflow-scrolling:touch;}
-.routeline-scroll::-webkit-scrollbar{height:5px;}
-.routeline-scroll::-webkit-scrollbar-thumb{background:var(--line); border-radius:4px;}
+.routeline-wrap{position:relative;}
+.routeline-scroll{overflow-x:auto; padding:6px 2px 10px; -webkit-overflow-scrolling:touch; scrollbar-width:none; -ms-overflow-style:none;}
+.routeline-scroll::-webkit-scrollbar{display:none; height:0;}
+.routeline-fade{position:absolute; top:0; right:0; bottom:10px; width:28px; background:linear-gradient(to right, rgba(255,255,255,0), var(--white)); pointer-events:none;}
 
 .quicklink{display:flex; align-items:center; gap:10px; background:var(--paper-2); border:1px solid var(--line); border-radius:12px; padding:12px; font-size:13px; font-weight:600; color:var(--ink-2); text-decoration:none; cursor:pointer;}
 .quicklink svg{width:18px;height:18px; stroke:var(--brick); flex-shrink:0;}
@@ -151,8 +152,8 @@ textarea#memoInput{width:100%; border:1px solid var(--line); border-radius:10px;
 <div class="tab active" id="tab-dashboard">
   <div class="card">
     <div class="section-label">D-DAY & 진행률</div>
-    <div style="display:flex; align-items:baseline; gap:10px; margin-bottom:10px;">
-      <div class="font-display" id="ddayText" style="font-size:34px; font-weight:700; color:var(--ink);">D-9</div>
+    <div style="display:flex; align-items:baseline; gap:10px; margin-bottom:10px; flex-wrap:wrap;">
+      <div class="font-display" id="ddayText" style="font-size:34px; font-weight:700; color:var(--ink); white-space:nowrap; flex-shrink:0;">D-9</div>
       <div style="font-size:12.5px; color:var(--muted);" id="ddaySub">2026.07.29 (수) 출발까지</div>
     </div>
     <div class="progress-wrap"><div class="progress-bar" id="progressBar" style="width:0%;"></div></div>
@@ -163,7 +164,10 @@ textarea#memoInput{width:100%; border:1px solid var(--line); border-radius:10px;
 
   <div class="card">
     <div class="section-label">여정 노선도</div>
-    <div class="routeline-scroll"><svg id="routeSvg" height="108"></svg></div>
+    <div class="routeline-wrap">
+      <div class="routeline-scroll"><svg id="routeSvg" height="108"></svg></div>
+      <div class="routeline-fade"></div>
+    </div>
   </div>
 
   <div class="card">
